@@ -118,6 +118,9 @@ export interface RecipeCross {
 export interface MealieStatus {
   configured: boolean
   url: string
+  /** Aperçu du jeton reçu par le serveur : assez pour le reconnaître, pas pour l'employer. */
+  token: { length: number; apercu: string } | null
+  lastError: string | null
   stale: boolean
   fetchedAt: number | null
   recipeCount: number

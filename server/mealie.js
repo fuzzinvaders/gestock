@@ -21,8 +21,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { DATA_DIR } from "./store.js";
 
-const BASE_URL = String(process.env.MEALIE_URL || "").replace(/\/+$/, "");
-const TOKEN = process.env.MEALIE_TOKEN || "";
+/* Les deux valeurs sont nettoyées avant usage : un jeton collé depuis l'interface
+   de Mealie emporte souvent une espace ou un retour à la ligne, et une adresse
+   finit une fois sur deux par une barre oblique. Le premier donne un 401
+   incompréhensible — le jeton est bon, l'en-tête ne l'est pas — et la seconde une
+   URL à double barre. Deux pannes qui coûtent une soirée pour un caractère
+   invisible. */
+const BASE_URL = String(process.env.MEALIE_URL || "")
+  .trim()
+  .replace(/\/+$/, "");
+const TOKEN = String(process.env.MEALIE_TOKEN || "").trim();
 const INDEX_FILE = path.join(DATA_DIR, "mealie.json");
 
 const TIMEOUT_MS = 10000;
@@ -41,6 +49,18 @@ const INDEX_VERSION = 2;
 
 function isConfigured() {
   return Boolean(BASE_URL && TOKEN);
+}
+
+/**
+ * De quoi reconnaître le jeton sans le divulguer : ses premiers et derniers
+ * caractères, et sa longueur. Cela suffit à répondre à « est-ce bien le nouveau
+ * que le conteneur a reçu ? », qui ne se tranchait jusqu'ici qu'en ligne de
+ * commande sur la machine hôte.
+ */
+function tokenHint() {
+  if (!TOKEN) return null;
+  if (TOKEN.length <= 12) return { length: TOKEN.length, apercu: "trop court" };
+  return { length: TOKEN.length, apercu: `${TOKEN.slice(0, 6)}…${TOKEN.slice(-4)}` };
 }
 
 async function call(pathname, params = {}) {
@@ -253,4 +273,4 @@ async function searchFoods(query) {
   return (payload.items ?? []).map((f) => ({ id: f.id, name: f.name }));
 }
 
-export { BASE_URL, getIndex, isConfigured, refreshIndex, searchFoods, summarise };
+export { BASE_URL, getIndex, isConfigured, refreshIndex, searchFoods, summarise, tokenHint };

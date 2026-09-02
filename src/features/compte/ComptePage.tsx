@@ -11,7 +11,7 @@ import type { Invite, SafeUser } from '../../lib/types'
 
 export function ComptePage() {
   const { user, signOut } = useAuth()
-  const { lots, products, places } = useInventaire()
+  const { lots, products, places, mealie } = useInventaire()
 
   return (
     <div className="space-y-4">
@@ -44,6 +44,8 @@ export function ComptePage() {
         </Link>
       </Card>
 
+      {mealie?.configured ? <Carnet /> : null}
+
       <MotDePasse />
       {user?.admin ? <Foyer meId={user.id} /> : null}
 
@@ -60,6 +62,52 @@ export function ComptePage() {
         </a>
       </Card>
     </div>
+  )
+}
+
+/**
+ * Ce que le serveur voit de Mealie.
+ *
+ * Écran de diagnostic autant que de réglage : quand une variable d'environnement
+ * ne parvient pas au conteneur — un « docker compose restart » qui ne relit pas
+ * le .env, un fichier lu depuis le mauvais répertoire — rien ne le dit, et on
+ * cherche du côté du jeton alors qu'il n'est jamais arrivé. L'aperçu permet de
+ * reconnaître le jeton reçu sans le divulguer.
+ */
+function Carnet() {
+  const { mealie, links } = useInventaire()
+  if (!mealie) return null
+  return (
+    <Card className="space-y-2">
+      <h2 className="font-medium text-slate-100">Carnet de recettes</h2>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        <dt className="text-slate-500">Adresse</dt>
+        <dd className="truncate text-right text-slate-300">{mealie.url || '—'}</dd>
+        <dt className="text-slate-500">Jeton reçu</dt>
+        <dd className="text-right text-slate-300">
+          {mealie.token
+            ? `${mealie.token.apercu} (${mealie.token.length} caractères)`
+            : 'aucun'}
+        </dd>
+        <dt className="text-slate-500">Dernière lecture</dt>
+        <dd className="text-right text-slate-300">
+          {mealie.fetchedAt ? new Date(mealie.fetchedAt).toLocaleString('fr-FR') : 'jamais'}
+        </dd>
+        <dt className="text-slate-500">Recettes</dt>
+        <dd className="text-right text-slate-300">{mealie.recipeCount}</dd>
+        <dt className="text-slate-500">Correspondances</dt>
+        <dd className="text-right text-slate-300">{links.length}</dd>
+      </dl>
+      {mealie.lastError ? (
+        <p className="rounded-lg bg-amber-950/60 px-3 py-2 text-xs text-amber-200">
+          Dernière erreur : {mealie.lastError}
+        </p>
+      ) : null}
+      <p className="text-xs text-slate-500">
+        Le jeton se règle dans MEALIE_TOKEN, côté serveur. Un changement n'atteint le conteneur
+        qu'après un « docker compose up -d » — un simple « restart » ne relit pas le .env.
+      </p>
+    </Card>
   )
 }
 

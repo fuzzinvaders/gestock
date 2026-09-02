@@ -17,6 +17,10 @@ yet, so entries are grouped by the change that shipped them.
   Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
   state for what is never inventoried. Recipes whose ingredients are entirely free text are set
   aside and counted rather than reported as complete.
+- **A Mealie diagnostic card** on the account page — address, masked token preview, last read,
+  last error — because "did my environment variable reach the container?" was otherwise only
+  answerable over SSH. Both values are trimmed on read: a token pasted from a web interface
+  carries a trailing newline often enough, and it produced a perfectly clean, baffling 401.
 - **A drawing of each place.** "Ouvrir" on a freezer or cupboard stacks its sections like the
   drawers they are, with their contents and an *Ajouter ici* button per drawer, so storing starts
   from where you are looking rather than from a general menu.

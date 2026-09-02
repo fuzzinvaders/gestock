@@ -418,10 +418,12 @@ async function handleApi(req, res, pathname) {
     const query = new URL(req.url, "http://x").searchParams;
 
     if (pathname === "/api/mealie" && req.method === "GET") {
-      const { index, stale } = mealie.getIndex();
+      const { index, stale, lastError } = mealie.getIndex();
       return sendJson(res, 200, {
         configured: mealie.isConfigured(),
         url: mealie.BASE_URL,
+        token: mealie.tokenHint(),
+        lastError,
         stale,
         fetchedAt: index?.fetchedAt ?? null,
         recipeCount: index?.recipes?.length ?? 0,

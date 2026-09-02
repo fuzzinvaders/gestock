@@ -92,6 +92,13 @@ opérations d'inventaire.
 Renseigne `MEALIE_URL` et `MEALIE_TOKEN` (un jeton longue durée créé dans ton profil Mealie) et
 un onglet **Recettes** apparaît. Sans ces variables, rien ne change : l'onglet n'existe pas.
 
+La page **Compte** montre ce que le serveur reçoit réellement : l'adresse, un aperçu du jeton
+(ses premiers et derniers caractères, assez pour le reconnaître sans le divulguer), la date de la
+dernière lecture et la dernière erreur. C'est là qu'on tranche la question « ma variable
+d'environnement est-elle bien arrivée dans le conteneur ? », qui ne se posait autrement qu'en
+ligne de commande. Attention : un `docker compose restart` ne relit pas le `.env`, il faut un
+`docker compose up -d`.
+
 Gestock ne lit Mealie que pour construire un *index* — pour chaque recette, la liste des
 identifiants de ses ingrédients. L'index est refait une fois par jour en arrière-plan, ou à la
 demande ; entre deux, répondre à « qu'est-ce qu'on mange » ne demande aucun réseau et survit à
