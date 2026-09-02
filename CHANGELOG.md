@@ -17,6 +17,9 @@ yet, so entries are grouped by the change that shipped them.
   Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
   state for what is never inventoried. Recipes whose ingredients are entirely free text are set
   aside and counted rather than reported as complete.
+- **Mealie errors now carry the response body**, not just the status code: "HTTP 403" alone does
+  not say whether the refusal comes from Mealie, from a reverse proxy or from a firewall sitting
+  in front of it. HTML error pages are stripped of their tags so the message stays one line.
 - **A Mealie diagnostic card** on the account page — address, masked token preview, last read,
   last error — because "did my environment variable reach the container?" was otherwise only
   answerable over SSH. Both values are trimmed on read: a token pasted from a web interface

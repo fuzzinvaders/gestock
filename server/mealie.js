@@ -73,7 +73,29 @@ async function call(pathname, params = {}) {
     headers: { authorization: `Bearer ${TOKEN}`, accept: "application/json" },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   });
-  if (!res.ok) throw new Error(`Mealie ${pathname} : HTTP ${res.status}`);
+  if (!res.ok) {
+    /* Le corps de la réponse porte l'explication — « Not authenticated », un
+       message de permission, ou la page d'un pare-feu applicatif qui s'est
+       interposé. La jeter pour ne garder que le code laissait « HTTP 403 » tout
+       nu, qui ne dit pas de quel côté chercher. On en prend de quoi reconnaître
+       la nature du refus, pas de quoi noyer l'écran. */
+    let detail = "";
+    try {
+      const brut = (await res.text()).trim();
+      const json = brut.startsWith("{") ? JSON.parse(brut) : null;
+      const texte = json?.detail ?? json?.message ?? brut;
+      detail = String(typeof texte === "string" ? texte : JSON.stringify(texte))
+        // Une page d'erreur HTML — celle d'un proxy ou d'un pare-feu — se lit mieux
+        // débarrassée de ses balises et de ses retours à la ligne.
+        .replace(/<[^>]*>/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 160);
+    } catch {
+      // Un corps illisible ne doit pas masquer le code, qui reste l'essentiel.
+    }
+    throw new Error(`Mealie ${pathname} : HTTP ${res.status}${detail ? ` — ${detail}` : ""}`);
+  }
   return res.json();
 }
 
