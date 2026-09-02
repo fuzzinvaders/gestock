@@ -71,8 +71,10 @@ opérations d'inventaire.
 - **Produit et lot** — le *produit*, c'est le pot de miel en général ; le *lot*, c'est CE pot-là,
   au deuxième étage, ouvert en mars. Scanner un produit déjà connu saute directement au lot.
 - **Réserves et sections** — une réserve est un congélateur, un placard, une cave ; les sections
-  en sont les tiroirs et les étages. Retirer une section ne supprime rien : ses lots remontent
-  dans la réserve.
+  en sont les tiroirs et les étages. « Ouvrir » en donne le dessin : les sections empilées comme
+  les tiroirs qu'elles sont, leur contenu visible d'un coup d'œil, et un bouton **Ajouter ici**
+  par tiroir — on range là où l'on regarde, sans redérouler un menu debout devant le congélateur
+  ouvert. Retirer une section ne supprime rien : ses lots remontent dans la réserve.
 - **Quantités** — chaque lot porte ce qu'il en reste, dans l'unité du produit. « J'en prends »
   décompte ce qu'on emporte ; quand il ne reste rien, le lot quitte l'inventaire.
 - **Dates** — la date de stockage est celle du jour, et la péremption vient de la durée de
@@ -95,8 +97,9 @@ identifiants de ses ingrédients. L'index est refait une fois par jour en arriè
 demande ; entre deux, répondre à « qu'est-ce qu'on mange » ne demande aucun réseau et survit à
 une panne de Mealie. Gestock n'écrit jamais rien dans Mealie : un jeton en lecture suffit.
 
-Reste à dire quel aliment Mealie correspond à quel produit du placard, dans l'écran
-**Correspondances**. Les aliments arrivent du plus utilisé au moins utilisé, avec une proposition
+Le rattachement se fait au plus simple pendant la saisie d'un produit : un champ **Ingrédient
+Mealie** y cherche dans le carnet, au moment où l'on a le nom en tête. Pour rattraper l'existant,
+l'écran **Correspondances** reprend la même chose en masse. Les aliments arrivent du plus utilisé au moins utilisé, avec une proposition
 quand les noms concordent (« filet de poulet » reconnaît « Blanc de poulet 4 filets 300 g »).
 Trois réponses possibles :
 

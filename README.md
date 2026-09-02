@@ -69,7 +69,10 @@ expiry levels, server-side validation and the inventory operations.
 - **Product vs. lot** — a *product* is the jar of honey in general; a *lot* is that jar, on the
   second shelf, opened in March. Scanning a product you already own skips straight to the lot.
 - **Places and sections** — a place is a freezer, a cupboard, a cellar; sections are its drawers
-  and shelves. Removing a section does not delete anything: its lots move up to the place itself.
+  and shelves. "Ouvrir" draws it: sections stacked like the drawers they are, their contents
+  visible at a glance, and an **Ajouter ici** button per drawer — you store where you are looking,
+  without scrolling a menu while holding the freezer door. Removing a section does not delete
+  anything: its lots move up to the place itself.
 - **Quantities** — each lot carries what is left, in the product's unit. "J'en prends" subtracts
   what you take; when nothing is left, the lot disappears from the inventory.
 - **Dates** — the storage date defaults to today, and the expiry can come from the product's
@@ -90,8 +93,9 @@ index is rebuilt once a day in the background, or on demand; in between, answeri
 cook" needs no network at all and survives a Mealie outage. Gestock never writes to Mealie: a
 read-only token is enough.
 
-What remains is saying which Mealie food matches which pantry product, in the **Correspondances**
-screen. Foods come sorted by how often they are used, with a proposal when the names line up
+Linking happens most naturally while entering a product: a **Ingrédient Mealie** field searches
+the recipe book right there, when the name is still in mind. To catch up on what already exists,
+the **Correspondances** screen does the same in bulk. Foods come sorted by how often they are used, with a proposal when the names line up
 ("filet de poulet" recognises "Blanc de poulet 4 filets 300 g"). Three possible answers: linked to
 a product (available while a lot remains), *toujours là* (salt, oil, water — what you have but
 never inventory), or nothing at all, in which case the ingredient counts as missing.

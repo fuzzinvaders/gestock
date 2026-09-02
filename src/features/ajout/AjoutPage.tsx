@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { ErrorText, Field, Input } from '../../components/ui/Field'
@@ -36,7 +37,13 @@ type Step =
   | { kind: 'lot'; product: Product }
 
 export function AjoutPage() {
-  const { places, products, saveProduct, saveLot } = useInventaire()
+  const { places, products, saveProduct, saveLot, saveLink } = useInventaire()
+  /* Où ranger, quand on arrive depuis une réserve : « ajouter ici » vise le
+     tiroir qu'on a sous les yeux, plutôt que de rouvrir un menu déroulant
+     debout devant le congélateur ouvert. */
+  const [params] = useSearchParams()
+  const reserveVisee = params.get('reserve')
+  const sectionVisee = params.get('section')
   const [step, setStep] = useState<Step>({ kind: 'debut' })
   const [scanning, setScanning] = useState(false)
   const [manualCode, setManualCode] = useState('')
@@ -46,10 +53,19 @@ export function AjoutPage() {
   const [done, setDone] = useState<string | null>(null)
 
   const defaultPlaceId = useMemo(() => {
+    if (reserveVisee && places.some((p) => p.id === reserveVisee)) return reserveVisee
     const recalled = recalledPlace()
     if (recalled && places.some((p) => p.id === recalled)) return recalled
     return places[0]?.id ?? ''
-  }, [places])
+  }, [places, reserveVisee])
+
+  const defaultSectionId = useMemo(() => {
+    const place = places.find((p) => p.id === defaultPlaceId)
+    return place?.sections.some((s) => s.id === sectionVisee) ? sectionVisee : null
+  }, [defaultPlaceId, places, sectionVisee])
+
+  const reserveNommee = places.find((p) => p.id === reserveVisee)
+  const sectionNommee = reserveNommee?.sections.find((s) => s.id === sectionVisee)
 
   const matches = useMemo(() => {
     const needle = search.trim().toLowerCase()
@@ -112,12 +128,25 @@ export function AjoutPage() {
 
   async function createProduct(draft: ProduitDraft) {
     const product = await saveProduct(null, draft)
+    // La correspondance Mealie se pose au moment où l'on décrit le produit :
+    // c'est là qu'on a son nom en tête, pas dans un écran de réglages plus tard.
+    if (draft.mealieFoodId) {
+      await saveLink(draft.mealieFoodId, {
+        foodName: draft.mealieFoodName || product.name,
+        productId: product.id,
+        always: false,
+      })
+    }
     setStep({ kind: 'lot', product })
   }
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold text-slate-100">Ajouter</h1>
+      <h1 className="text-xl font-semibold text-slate-100">
+        {reserveNommee
+          ? `Ajouter dans ${reserveNommee.name}${sectionNommee ? ` · ${sectionNommee.name}` : ''}`
+          : 'Ajouter'}
+      </h1>
 
       {places.length === 0 ? (
         <Card className="text-sm text-slate-400">
@@ -233,7 +262,7 @@ export function AjoutPage() {
         <Card>
           <LotForm
             product={step.product}
-            initial={emptyLot(step.product, defaultPlaceId)}
+            initial={emptyLot(step.product, defaultPlaceId, defaultSectionId)}
             submitLabel="Ranger"
             onCancel={() => setStep({ kind: 'debut' })}
             onSubmit={async (draft) => {

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { ErrorText } from '../../components/ui/Field'
@@ -51,6 +52,12 @@ export function ReservesPage() {
                 </p>
               </div>
               <div className="flex gap-2">
+                <Link
+                  to={`/reserves/${place.id}`}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-500"
+                >
+                  Ouvrir
+                </Link>
                 <Button variant="secondary" onClick={() => setEditing(place)}>
                   Modifier
                 </Button>
@@ -66,12 +73,15 @@ export function ReservesPage() {
               {place.sections.map((section) => {
                 const inSection = lots.filter((lot) => lot.sectionId === section.id).length
                 return (
-                  <li
-                    key={section.id}
-                    className="rounded-full border border-slate-800 px-3 py-1 text-xs text-slate-400"
-                  >
-                    {section.name}
-                    <span className="ml-1.5 text-slate-600">{inSection}</span>
+                  <li key={section.id}>
+                    <Link
+                      to={`/ajouter?reserve=${place.id}&section=${section.id}`}
+                      title={`Ranger dans « ${section.name} »`}
+                      className="inline-block rounded-full border border-slate-800 px-3 py-1 text-xs text-slate-400 hover:border-emerald-600 hover:text-emerald-300"
+                    >
+                      {section.name}
+                      <span className="ml-1.5 text-slate-600">{inSection}</span>
+                    </Link>
                   </li>
                 )
               })}

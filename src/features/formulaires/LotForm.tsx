@@ -24,11 +24,15 @@ const SHORTCUTS = [
   { label: '+1 an', days: 365 },
 ]
 
-export function emptyLot(product: Product, placeId: string): LotDraft {
+export function emptyLot(
+  product: Product,
+  placeId: string,
+  sectionId: string | null = null,
+): LotDraft {
   const storedAt = todayIso()
   return {
     placeId,
-    sectionId: null,
+    sectionId,
     quantity: 1,
     storedAt,
     // La durée de conservation de la fiche produit devient une date concrète : on

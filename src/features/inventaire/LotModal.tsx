@@ -11,8 +11,18 @@ import { ProduitForm, produitToDraft } from '../formulaires/ProduitForm'
 type Mode = 'vue' | 'lot' | 'produit'
 
 export function LotModal({ lot, onClose }: { lot: Lot; onClose: () => void }) {
-  const { productById, placeById, sectionName, consumeLot, removeLot, saveLot, saveProduct } =
-    useInventaire()
+  const {
+    productById,
+    placeById,
+    sectionName,
+    links,
+    consumeLot,
+    removeLot,
+    saveLot,
+    saveProduct,
+    saveLink,
+    removeLink,
+  } = useInventaire()
   const [mode, setMode] = useState<Mode>('vue')
   const [taking, setTaking] = useState(1)
   const [error, setError] = useState<string | null>(null)
@@ -20,6 +30,7 @@ export function LotModal({ lot, onClose }: { lot: Lot; onClose: () => void }) {
 
   const product = productById(lot.productId)
   const place = placeById(lot.placeId)
+  const lienMealie = links.find((l) => l.productId === lot.productId) ?? null
 
   async function run(action: () => Promise<void>) {
     setBusy(true)
@@ -62,11 +73,22 @@ export function LotModal({ lot, onClose }: { lot: Lot; onClose: () => void }) {
     return (
       <Modal title="Fiche produit" onClose={onClose}>
         <ProduitForm
-          initial={produitToDraft(product)}
+          initial={produitToDraft(product, lienMealie)}
           submitLabel="Enregistrer"
           onCancel={() => setMode('vue')}
           onSubmit={async (draft) => {
             await saveProduct(product.id, draft)
+            // Le rattachement suit la fiche : le changer ici doit valoir aussi
+            // pour les recettes, sans passer par un second écran.
+            if (draft.mealieFoodId && draft.mealieFoodId !== lienMealie?.foodId) {
+              await saveLink(draft.mealieFoodId, {
+                foodName: draft.mealieFoodName || product.name,
+                productId: product.id,
+                always: false,
+              })
+            } else if (!draft.mealieFoodId && lienMealie) {
+              await removeLink(lienMealie.foodId)
+            }
             setMode('vue')
           }}
         />

@@ -17,6 +17,11 @@ yet, so entries are grouped by the change that shipped them.
   Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
   state for what is never inventoried. Recipes whose ingredients are entirely free text are set
   aside and counted rather than reported as complete.
+- **A drawing of each place.** "Ouvrir" on a freezer or cupboard stacks its sections like the
+  drawers they are, with their contents and an *Ajouter ici* button per drawer, so storing starts
+  from where you are looking rather than from a general menu.
+- **Linking a product to a recipe ingredient while entering it**, rather than only in bulk
+  afterwards — the moment the name is in mind is the moment to say what it is.
 - **First version.** Inventory of what is left in the freezer and the cupboards, by place and
   section, with quantities, storage dates and expiry dates.
 - **Barcode scanning** from the phone camera, with a lookup in Open Food Facts that pre-fills the
