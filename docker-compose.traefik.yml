@@ -1,0 +1,59 @@
+# Déploiement derrière Traefik, en HTTPS, sur un réseau Docker partagé.
+#
+#   docker network create proxy   # si le réseau n'existe pas encore
+#   docker compose -f docker-compose.traefik.yml up -d
+#   # Mise à jour :
+#   docker compose -f docker-compose.traefik.yml pull && \
+#     docker compose -f docker-compose.traefik.yml up -d
+#
+# Deux valeurs viennent d'un fichier .env placé à côté de ce fichier (voir
+# .env.example) : DOMAIN (obligatoire) et AUTH_SECRET (recommandé).
+#
+# ATTENTION si Traefik gère plusieurs domaines avec résolution ACME en DNS-01 : le
+# resolver est lié à UN SEUL fournisseur DNS. Si ${DOMAIN} est chez un autre
+# fournisseur que celui déjà configuré, ajoute un second resolver dans Traefik et
+# référence son nom dans `certresolver` ci-dessous — sinon Traefik sert son
+# certificat auto-signé par défaut à la place du vrai.
+
+name: gestock
+
+services:
+  gestock:
+    # Image PUBLIQUE par défaut : rien à builder, rien à configurer, aucun login.
+    # Surcharge possible via GESTOCK_IMAGE (registre privé, tag figé...).
+    image: ${GESTOCK_IMAGE:-ghcr.io/fuzzinvaders/gestock:latest}
+    container_name: gestock
+    restart: unless-stopped
+    pull_policy: always
+    environment:
+      # Origine publique EXACTE de l'app (schéma + domaine) : obligatoire pour que
+      # les requêtes d'écriture ne soient pas rejetées comme inter-sites.
+      ORIGIN: https://${DOMAIN:?Définis DOMAIN=ton-domaine.tld dans .env}
+      # Secret de signature des sessions (openssl rand -hex 32). Si vide, un secret
+      # aléatoire est généré et persisté dans le volume de données.
+      AUTH_SECRET: ${AUTH_SECRET:-}
+    volumes:
+      - gestock-data:/data
+    # Pas de "ports:" ici : Traefik route le trafic via le réseau partagé, pas
+    # besoin d'exposer le port sur l'hôte.
+    networks:
+      - proxy
+    labels:
+      - traefik.enable=true
+      # Utile dès qu'un conteneur voit plusieurs réseaux : indique lequel joindre.
+      - traefik.docker.network=proxy
+      # La règle attend des accents graves autour de l'hôte, pas des guillemets.
+      - 'traefik.http.routers.gestock.rule=Host(`${DOMAIN:?Définis DOMAIN=ton-domaine.tld dans .env}`)'
+      - traefik.http.routers.gestock.entrypoints=websecure
+      - traefik.http.routers.gestock.tls=true
+      # Nom du resolver ACME configuré dans Traefik pour le fournisseur DNS qui gère
+      # CE domaine précisément (voir l'avertissement en haut de fichier).
+      # - traefik.http.routers.gestock.tls.certresolver=letsencrypt
+      - traefik.http.services.gestock.loadbalancer.server.port=3000
+
+volumes:
+  gestock-data:
+
+networks:
+  proxy:
+    external: true

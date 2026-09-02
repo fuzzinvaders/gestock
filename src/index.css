@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: #020617;
+  color: #f1f5f9;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+}
+
+/* Les champs date et nombre restent lisibles en thème sombre sur iOS, où le
+   navigateur les peint autrement du reste du formulaire. */
+input[type='date'],
+input[type='number'] {
+  color-scheme: dark;
+}

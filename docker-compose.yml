@@ -1,0 +1,42 @@
+# Gestock, au plus simple : une image publique, un volume, rien à construire.
+#
+#   docker compose up -d
+#
+# À savoir : en http sur une IP locale, les navigateurs refusent l'accès à la
+# caméra — le scan de codes-barres reste alors indisponible depuis un téléphone
+# (la saisie du code à la main, elle, fonctionne). Pour scanner, il faut du https :
+# voir docker-compose.traefik.yml.
+#
+# Pour partir des sources plutôt que de l'image publiée, décommenter « build »
+# et lancer « docker compose up -d --build ».
+
+name: gestock
+
+services:
+  gestock:
+    image: ${GESTOCK_IMAGE:-ghcr.io/fuzzinvaders/gestock:latest}
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+    container_name: gestock
+    restart: unless-stopped
+    environment:
+      # Origine publique de l'app, à ne renseigner QUE derrière un reverse proxy
+      # (ex: https://gestock.exemple.fr) — ça active une vérification anti-CSRF
+      # sur les requêtes d'écriture. En local, laisse vide : le port hôte (voir
+      # HOST_PORT ci-dessous) ne correspond pas forcément au port interne (3000),
+      # une valeur par défaut serait donc fausse la moitié du temps.
+      ORIGIN: ${ORIGIN:-}
+      # Secret de signature des sessions (openssl rand -hex 32). Si vide, un secret
+      # aléatoire est généré et persisté dans le volume de données.
+      AUTH_SECRET: ${AUTH_SECRET:-}
+    volumes:
+      # Persiste les comptes et l'inventaire (réserves, produits, lots).
+      - gestock-data:/data
+    ports:
+      # host:container — l'app écoute sur 3000 dans le conteneur.
+      # Change HOST_PORT si 8080 est déjà pris sur ta machine.
+      - "${HOST_PORT:-8080}:3000"
+
+volumes:
+  gestock-data:

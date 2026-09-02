@@ -1,0 +1,76 @@
+# Construit et publie l'image Docker publique sur le registre de GitHub.
+#
+#   ghcr.io/fuzzinvaders/gestock:latest      la pointe de main
+#   ghcr.io/fuzzinvaders/gestock:v1.2.3      une version étiquetée
+#   ghcr.io/fuzzinvaders/gestock:sha-1a2b3c  un commit précis
+#
+# Les tests et le build (tsc + vite) passent avant la publication : une image ne part pas si
+# la suite échoue. Sur une pull request, tout est construit mais rien n'est publié.
+
+name: Image Docker
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  publier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Installation
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+      - name: Build (tsc + vite)
+        run: npm run build
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Connexion au registre
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=tag
+            type=sha,format=short
+
+      - name: Construction et publication
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

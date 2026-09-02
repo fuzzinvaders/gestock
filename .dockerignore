@@ -1,0 +1,16 @@
+node_modules
+dist
+.data
+.git
+.github
+.vscode
+.claude
+*.md
+!README.md
+.env
+.env.*
+Dockerfile
+.dockerignore
+docker-compose.yml
+Thumbs.db
+.DS_Store

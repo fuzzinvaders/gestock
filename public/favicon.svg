@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Gestock">
+  <title>Gestock</title>
+  <!-- Un bocal de réserve en aplat, lisible à 32 px comme à 512.
+       Le dessin tient dans le cercle de sécurité des icônes masquables (80 %),
+       donc la même image sert pour « any » et pour « maskable ».
+       Copyright (C) 2026 fuzzinvaders — SPDX-License-Identifier: AGPL-3.0-or-later -->
+  <rect width="512" height="512" rx="104" fill="#020617"/>
+  <!-- Le couvercle, posé large : c'est lui qui dit « bocal » plutôt que « verre ». -->
+  <rect x="146" y="96" width="220" height="56" rx="20" fill="#e2e8f0"/>
+  <rect x="176" y="146" width="160" height="26" fill="#94a3b8"/>
+  <!-- Le corps, et son contenu à mi-hauteur : une réserve entamée. -->
+  <rect x="136" y="168" width="240" height="248" rx="44" fill="#0f172a" stroke="#34d399" stroke-width="16"/>
+  <path d="M152 292h208v80a44 44 0 0 1-44 44H196a44 44 0 0 1-44-44z" fill="#10b981"/>
+  <circle cx="212" cy="252" r="16" fill="#34d399"/>
+  <circle cx="286" cy="236" r="12" fill="#34d399" fill-opacity=".7"/>
+</svg>
