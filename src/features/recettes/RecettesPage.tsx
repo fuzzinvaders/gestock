@@ -12,6 +12,10 @@ interface Reponse {
   recipes: RecipeCross[]
   /** Recettes dont aucun ingrédient n'est structuré dans Mealie : injugeables. */
   ignored: number
+  /** L'index est en cours de fabrication : rien à montrer, mais ça vient. */
+  building: boolean
+  /** Pourquoi la dernière lecture de Mealie a échoué, s'il y a lieu. */
+  mealieError: string | null
   stale: boolean
   fetchedAt: number | null
   linkCount: number
@@ -57,6 +61,16 @@ export function RecettesPage() {
   useEffect(() => {
     void charger()
   }, [charger])
+
+  /* Tant que le carnet se construit, on redemande tout seul : la lecture dure une
+     vingtaine de secondes et se termine soit par des recettes, soit par une erreur.
+     Sans ça, l'écran resterait sur « en cours » jusqu'à ce que quelqu'un pense à
+     appuyer — y compris quand la lecture a échoué depuis longtemps. */
+  useEffect(() => {
+    if (!data?.building) return
+    const timer = setTimeout(() => void charger(), 5000)
+    return () => clearTimeout(timer)
+  }, [charger, data])
 
   async function rafraichir() {
     setRefreshing(true)
@@ -144,7 +158,27 @@ export function RecettesPage() {
 
       {loading ? <p className="py-6 text-center text-slate-500">Chargement du carnet…</p> : null}
 
-      {!loading && visibles.length === 0 ? (
+      {data?.mealieError ? (
+        <Card className="space-y-2 text-sm">
+          <p className="text-amber-300">Mealie n'a pas pu être lu.</p>
+          <p className="text-slate-400">{data.mealieError}</p>
+          <p className="text-xs text-slate-500">
+            Un jeton révoqué ou expiré donne « HTTP 401 » : il se remplace dans MEALIE_TOKEN, côté
+            serveur. Les recettes affichées, si elles le sont, datent de la dernière lecture réussie.
+          </p>
+        </Card>
+      ) : null}
+
+      {!loading && data?.building && !data?.mealieError ? (
+        <Card className="space-y-2 text-center text-sm text-slate-400">
+          <p>Le carnet est en cours de lecture — une requête par recette, comptez une minute.</p>
+          <Button variant="secondary" onClick={() => void charger()}>
+            Actualiser
+          </Button>
+        </Card>
+      ) : null}
+
+      {!loading && !data?.building && !data?.mealieError && visibles.length === 0 ? (
         <Card className="text-center text-sm text-slate-400">
           {mode === 'sauver'
             ? 'Aucune recette ne consomme un lot qui périme dans la semaine.'

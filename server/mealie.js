@@ -34,6 +34,11 @@ const STALE_MS = 24 * 3600 * 1000;
 const CONCURRENCY = 6;
 const MAX_RECIPES = 2000;
 
+/* Forme de l'index. L'incrémenter périme d'un coup les index déjà sur disque :
+   une correction du contenu — un nom d'aliment perdu, par exemple — ne demande
+   alors aucun geste, l'index se refait au premier affichage suivant. */
+const INDEX_VERSION = 2;
+
 function isConfigured() {
   return Boolean(BASE_URL && TOKEN);
 }
@@ -59,7 +64,7 @@ function readIndex() {
   try {
     const parsed = JSON.parse(fs.readFileSync(INDEX_FILE, "utf-8"));
     if (!Array.isArray(parsed.recipes)) return null;
-    return parsed;
+    return { version: parsed.version ?? 1, ...parsed };
   } catch {
     return null;
   }
@@ -92,15 +97,25 @@ async function listRecipeSlugs() {
    complète. */
 function summarise(recipe, groupSlug) {
   const foodIds = [];
+  /* Le nom de l'aliment est relevé ici, dans la recette qui l'emploie, et nulle
+     part ailleurs. Il venait auparavant d'une seconde requête — la pagination du
+     catalogue complet — dont l'échec d'une seule page suffisait à laisser des
+     ingrédients anonymes : « (aliment inconnu) », qu'on ne peut ni relier, ni
+     acheter, ni même comprendre. Un aliment cité par une recette porte forcément
+     son nom dans cette recette : la source la plus sûre est la plus proche. */
+  const foodNames = {};
   let freeText = 0;
   for (const line of recipe.recipeIngredient ?? []) {
     if (line.food?.id) {
       if (!foodIds.includes(line.food.id)) foodIds.push(line.food.id);
+      const nom = String(line.food.name ?? "").trim();
+      if (nom) foodNames[line.food.id] = nom;
     } else {
       freeText += 1;
     }
   }
   return {
+    foodNames,
     id: recipe.id,
     slug: recipe.slug,
     name: recipe.name,
@@ -132,9 +147,35 @@ async function fetchAll(slugs, groupSlug) {
   return recipes;
 }
 
+let refreshing = null;
+/* La dernière raison d'un échec de lecture, gardée pour être dite. Une
+   reconstruction qui échoue en silence laisse l'écran sur « en cours » pour
+   toujours : le jeton révoqué, l'instance éteinte ou le certificat expiré
+   doivent se lire dans l'interface, pas dans les journaux du conteneur. */
+let derniereErreur = null;
+/* Quand une lecture échoue, on ne réessaie pas avant ce délai. Sans lui, chaque
+   affichage relançait une tentative condamnée — un jeton révoqué le reste — ce qui
+   martelait l'instance Mealie et, pire, effaçait l'erreur avant qu'elle ait pu être
+   lue. Le bouton « Relire Mealie » passe outre : là, c'est quelqu'un qui demande. */
+const REPRISE_MS = 5 * 60 * 1000;
+let dernierEchec = 0;
+
 /** Reconstruit l'index. Long (une requête par recette) : à ne pas appeler en boucle. */
 async function refreshIndex() {
   if (!isConfigured()) return { ok: false, error: "Mealie n'est pas configuré." };
+  try {
+    return await lireCarnet();
+  } catch (err) {
+    // Un seul endroit consigne l'échec, qu'il vienne d'un rafraîchissement de fond
+    // ou d'un clic sur « Relire Mealie » : sans quoi l'un effacerait la trace de
+    // l'autre, ce qui s'est déjà vu.
+    derniereErreur = String(err?.message ?? err);
+    dernierEchec = Date.now();
+    return { ok: false, error: derniereErreur };
+  }
+}
+
+async function lireCarnet() {
   let groupSlug = "home";
   try {
     const group = await call("/api/groups/self");
@@ -146,38 +187,34 @@ async function refreshIndex() {
 
   const slugs = await listRecipeSlugs();
   const recipes = await fetchAll(slugs, groupSlug);
+  // Passé ce point, la lecture a réussi : l'échec précédent n'a plus lieu d'être.
+  derniereErreur = null;
+  dernierEchec = 0;
 
   // Le catalogue d'aliments de Mealie compte des milliers d'entrées, dont
   // l'immense majorité n'apparaît dans aucune recette. Seuls comptent ceux qu'on
   // utilise vraiment : c'est eux, et eux seuls, qu'il faudra relier à un produit.
+  // Noms et comptages sortent du même passage sur les recettes, donc aucun aliment
+  // cité ne peut se retrouver sans nom.
   const counts = new Map();
+  const names = new Map();
   for (const recipe of recipes) {
     for (const id of recipe.foodIds) counts.set(id, (counts.get(id) ?? 0) + 1);
-  }
-  const names = new Map();
-  try {
-    let page = 1;
-    for (;;) {
-      const payload = await call("/api/foods", { page, perPage: 200 });
-      for (const food of payload.items ?? []) names.set(food.id, food.name);
-      if (!payload.total_pages || page >= payload.total_pages) break;
-      page += 1;
-    }
-  } catch {
-    // Sans les noms, l'écran de correspondance serait illisible, mais les recettes
-    // restent exploitables : on garde ce qu'on a.
+    for (const [id, nom] of Object.entries(recipe.foodNames ?? {})) names.set(id, nom);
+    // Les noms ont fait leur office : les garder dans chaque recette alourdirait
+    // l'index d'autant de copies qu'il y a d'emplois.
+    delete recipe.foodNames;
   }
 
   const foods = [...counts.entries()]
-    .map(([id, count]) => ({ id, name: names.get(id) ?? "(aliment inconnu)", count }))
+    .map(([id, count]) => ({ id, name: names.get(id) ?? `Aliment ${id.slice(0, 8)}`, count }))
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "fr"));
 
-  const index = { fetchedAt: Date.now(), groupSlug, recipes, foods };
+  const index = { version: INDEX_VERSION, fetchedAt: Date.now(), groupSlug, recipes, foods };
   writeIndex(index);
   return { ok: true, index };
 }
 
-let refreshing = null;
 
 /**
  * L'index, tout de suite. S'il est périmé, un rafraîchissement part en arrière-plan
@@ -185,16 +222,29 @@ let refreshing = null;
  * qu'une liste d'aujourd'hui après dix secondes de sablier.
  */
 function getIndex({ refreshIfStale = true } = {}) {
-  const index = readIndex();
-  const stale = !index || Date.now() - index.fetchedAt > STALE_MS;
-  if (stale && refreshIfStale && isConfigured() && !refreshing) {
-    refreshing = refreshIndex()
-      .catch(() => undefined)
-      .finally(() => {
-        refreshing = null;
-      });
+  const surDisque = readIndex();
+  const perime = surDisque && Date.now() - surDisque.fetchedAt > STALE_MS;
+  /* Un index d'une forme antérieure est écarté au lieu d'être servi : sa forme a
+     changé parce que son contenu était fautif, et montrer des noms qu'on sait
+     faux vaut moins qu'une minute d'attente annoncée. Un index simplement vieux,
+     lui, reste affiché — il est juste, seulement daté. */
+  const perimeParForme = Boolean(surDisque) && surDisque.version !== INDEX_VERSION;
+  const stale = !surDisque || perime || perimeParForme;
+
+  const enPause = Date.now() - dernierEchec < REPRISE_MS;
+  if (stale && refreshIfStale && isConfigured() && !refreshing && !enPause) {
+    refreshing = refreshIndex().finally(() => {
+      refreshing = null;
+    });
   }
-  return { index, stale };
+
+  const index = perimeParForme ? null : surDisque;
+  return {
+    index,
+    stale,
+    building: Boolean(refreshing) && !index,
+    lastError: derniereErreur,
+  };
 }
 
 async function searchFoods(query) {
@@ -203,4 +253,4 @@ async function searchFoods(query) {
   return (payload.items ?? []).map((f) => ({ id: f.id, name: f.name }));
 }
 
-export { BASE_URL, getIndex, isConfigured, refreshIndex, searchFoods };
+export { BASE_URL, getIndex, isConfigured, refreshIndex, searchFoods, summarise };

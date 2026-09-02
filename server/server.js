@@ -439,6 +439,8 @@ async function handleApi(req, res, pathname) {
     if (pathname === "/api/mealie/refresh" && req.method === "POST") {
       // Le seul appel qui fait attendre : une requête par recette. Il est déclenché
       // à la main, ou une fois par jour en arrière-plan par getIndex.
+      // Demande explicite : elle ignore la pause qui suit un échec, puisque
+      // quelqu'un vient peut-être justement de corriger le jeton.
       const result = await mealie.refreshIndex();
       if (!result.ok) return sendJson(res, 502, { error: result.error });
       return sendJson(res, 200, {
@@ -449,9 +451,20 @@ async function handleApi(req, res, pathname) {
     }
 
     if (pathname === "/api/mealie/recettes" && req.method === "GET") {
-      const { index, stale } = mealie.getIndex();
+      const { index, stale, building, lastError } = mealie.getIndex();
       if (!index) {
-        return sendJson(res, 200, { recipes: [], stale: true, fetchedAt: null, linkCount: 0 });
+        // Rien à montrer, mais la raison compte : un carnet en construction se
+        // dit autrement qu'un carnet jamais lu.
+        return sendJson(res, 200, {
+          recipes: [],
+          ignored: 0,
+          building,
+          mealieError: lastError,
+          stale: true,
+          fetchedAt: null,
+          linkCount: store.readInventory().links.length,
+          foodCount: 0,
+        });
       }
       // Le jour vient du téléphone : c'est lui qui sait s'il est déjà demain.
       const today = validateStoredAt(query.get("today"));
@@ -470,6 +483,8 @@ async function handleApi(req, res, pathname) {
       return sendJson(res, 200, {
         recipes: recettes,
         ignored: ignorees,
+        building: false,
+        mealieError: lastError,
         stale,
         fetchedAt: index.fetchedAt,
         linkCount: inventory.links.length,

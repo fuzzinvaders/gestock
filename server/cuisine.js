@@ -151,7 +151,11 @@ function croiserRecettes({ index, links, products, lots, places = [], today }) {
     }
 
     const ingredients = recipe.foodIds.map((foodId) => {
-      const nom = nomsAliments.get(foodId) ?? "(aliment inconnu)";
+      // Le repli ne devrait plus servir : l'index tire les noms des recettes
+      // elles-mêmes. S'il sort quand même, il donne de quoi retrouver l'aliment
+      // dans Mealie plutôt qu'un « inconnu » sur lequel on ne peut rien faire.
+      const nom = nomsAliments.get(foodId) ?? `Aliment ${foodId.slice(0, 8)}`;
+
       const trouve = stock.get(foodId);
       if (!trouve) {
         return { foodId, name: nom, status: relies.has(foodId) ? "manque" : "inconnu" };
