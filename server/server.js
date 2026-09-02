@@ -41,7 +41,7 @@ import {
 } from "./inventaire.js";
 import { lookup } from "./openfoodfacts.js";
 import * as mealie from "./mealie.js";
-import { alimentsARelier, recettesPossibles } from "./cuisine.js";
+import { alimentsARelier, croiserRecettes } from "./cuisine.js";
 import { validateBody, validateEan, validateId, validateStoredAt } from "./validate.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -455,15 +455,17 @@ async function handleApi(req, res, pathname) {
       }
       // Le jour vient du téléphone : c'est lui qui sait s'il est déjà demain.
       const today = validateStoredAt(query.get("today"));
-      const max = Math.min(Math.max(Number(query.get("max") ?? 3) || 0, 0), 5);
       const inventory = store.readInventory();
-      const { recettes, ignorees } = recettesPossibles({
+      // Tout le carnet est renvoyé, annoté : c'est l'interface qui cherche, trie
+      // et filtre. Une centaine de recettes tient dans quelques dizaines de
+      // kilo-octets, et l'écran devient instantané une fois chargé.
+      const { recettes, ignorees } = croiserRecettes({
         index,
         links: inventory.links,
         products: inventory.products,
         lots: inventory.lots,
+        places: inventory.places,
         today: today.ok ? today.value : new Date().toISOString().slice(0, 10),
-        maxMissing: max,
       });
       return sendJson(res, 200, {
         recipes: recettes,

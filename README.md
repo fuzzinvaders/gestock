@@ -96,9 +96,14 @@ screen. Foods come sorted by how often they are used, with a proposal when the n
 a product (available while a lot remains), *toujours là* (salt, oil, water — what you have but
 never inventory), or nothing at all, in which case the ingredient counts as missing.
 
-The tab then shows two lists: **à sauver**, recipes using a lot that expires within the week, and
-**avec ce qu'il y a**, the rest, ranked by how many ingredients are missing — a slider from zero
-to three.
+You then start from the recipe: search it, open it, and every ingredient says what you have of it
+— "carotte: Carottes fanes botte, fridge, 2 pieces, in 3 weeks". The point is not to re-buy what
+is sleeping at the bottom of the freezer. The rest copies out as a shopping list in one button.
+Three filters: all, nothing to buy, and *à sauver* (recipes using a lot that expires this week).
+
+A missing ingredient is stated two ways, and the difference matters: *à acheter* when it is linked
+to a product with no lot left, *non relié* when nothing is known about it at all. The second is
+fixed in Correspondances, not at the shop.
 
 Two deliberate limits: the question answered is "do you have this ingredient", not "do you have
 enough" (converting 200 g of tomatoes into "one tin" is not solvable in general, and a wrong

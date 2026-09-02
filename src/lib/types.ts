@@ -78,17 +78,28 @@ export interface PendingFood {
   suggestion: { productId: string; productName: string } | null
 }
 
-export interface RecipeUse {
+/**
+ * L'état d'un ingrédient de recette vis-à-vis du placard.
+ * « manque » et « inconnu » s'achètent tous les deux, mais le second est une
+ * ignorance — l'aliment n'a jamais été relié — et se corrige sans passer en caisse.
+ */
+export type IngredientStatus = 'stock' | 'toujours' | 'manque' | 'inconnu'
+
+export interface RecipeIngredient {
   foodId: string
-  foodName: string
-  productId: string
-  productName: string
-  lotId: string
-  expiresAt: string | null
-  level: 'perime' | 'urgent' | 'bientot' | 'ok' | 'sans'
+  name: string
+  status: IngredientStatus
+  productId?: string
+  productName?: string
+  placeName?: string | null
+  quantity?: number
+  unit?: string
+  lotId?: string
+  expiresAt?: string | null
+  level?: 'perime' | 'urgent' | 'bientot' | 'ok' | 'sans'
 }
 
-export interface RecipeSuggestion {
+export interface RecipeCross {
   slug: string
   name: string
   url: string
@@ -97,8 +108,9 @@ export interface RecipeSuggestion {
   servings: number | null
   /** Lignes d'ingrédients en texte libre : invérifiables, donc signalées. */
   freeText: number
-  missing: { id: string; name: string }[]
-  uses: RecipeUse[]
+  ingredients: RecipeIngredient[]
+  haveCount: number
+  missingCount: number
   urgent: boolean
   soonest: string | null
 }

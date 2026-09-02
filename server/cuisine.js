@@ -119,13 +119,24 @@ function stockParAliment(links, products, lots, today) {
 const SAUVETAGE_JOURS = 7;
 
 /**
- * Les recettes réalisables, classées : d'abord celles qui consomment un lot dont
- * la date approche, ensuite celles qui ne manquent de rien, puis les autres par
- * nombre d'ingrédients manquants.
+ * Chaque recette du carnet, ingrédient par ingrédient, avec ce qu'on en a.
+ *
+ * La question à laquelle ça répond est « pour cette recette, qu'est-ce que j'ai
+ * déjà », pour ne pas racheter ce qui dort au congélateur. Le classement — d'abord
+ * ce qui sauve un lot qui presse — n'est qu'une lecture parmi d'autres de la même
+ * liste : c'est l'interface qui trie et filtre, pas ce calcul.
+ *
+ * Quatre états par ingrédient, et la distinction entre les deux derniers compte :
+ *   stock    — relié à un produit dont il reste un lot, ici, avec sa date
+ *   toujours — le sel, l'huile : on l'a sans le compter
+ *   manque   — relié à un produit, mais plus rien en réserve : à racheter
+ *   inconnu  — jamais relié : on n'en sait rien, ce qui n'est pas « on ne l'a pas »
  */
-function recettesPossibles({ index, links, products, lots, today, maxMissing = 3 }) {
+function croiserRecettes({ index, links, products, lots, places = [], today }) {
   const stock = stockParAliment(links, products, lots, today);
   const nomsAliments = new Map((index.foods ?? []).map((f) => [f.id, f.name]));
+  const relies = new Set(links.map((l) => l.foodId));
+  const nomsLieux = new Map(places.map((p) => [p.id, p.name]));
 
   const resultats = [];
   let ignorees = 0;
@@ -138,32 +149,35 @@ function recettesPossibles({ index, links, products, lots, today, maxMissing = 3
       ignorees += 1;
       continue;
     }
-    const manquants = [];
-    const utilise = [];
-    for (const foodId of recipe.foodIds) {
+
+    const ingredients = recipe.foodIds.map((foodId) => {
+      const nom = nomsAliments.get(foodId) ?? "(aliment inconnu)";
       const trouve = stock.get(foodId);
       if (!trouve) {
-        manquants.push({ id: foodId, name: nomsAliments.get(foodId) ?? "(aliment inconnu)" });
-        continue;
+        return { foodId, name: nom, status: relies.has(foodId) ? "manque" : "inconnu" };
       }
-      if (trouve.always) continue;
-      utilise.push({
+      if (trouve.always) return { foodId, name: nom, status: "toujours" };
+      return {
         foodId,
-        foodName: nomsAliments.get(foodId) ?? trouve.product.name,
+        name: nom,
+        status: "stock",
         productId: trouve.product.id,
         productName: trouve.product.name,
+        placeName: nomsLieux.get(trouve.lot.placeId) ?? null,
+        quantity: trouve.lot.quantity,
+        unit: trouve.product.unit ?? "",
         lotId: trouve.lot.id,
         expiresAt: trouve.lot.expiresAt,
         level: trouve.level,
-      });
-    }
-    if (manquants.length > maxMissing) continue;
+      };
+    });
 
-    const presse = utilise.filter(
-      (u) => u.expiresAt && daysUntil(u.expiresAt, today) <= SAUVETAGE_JOURS,
+    const enStock = ingredients.filter((i) => i.status === "stock");
+    const presse = enStock.filter(
+      (i) => i.expiresAt && daysUntil(i.expiresAt, today) <= SAUVETAGE_JOURS,
     );
     const echeance = presse
-      .map((u) => u.expiresAt)
+      .map((i) => i.expiresAt)
       .sort((a, b) => String(a).localeCompare(String(b)))[0];
 
     resultats.push({
@@ -176,23 +190,15 @@ function recettesPossibles({ index, links, products, lots, today, maxMissing = 3
       // Les lignes en texte libre échappent au calcul : l'interface le dit, plutôt
       // que de laisser croire à une recette vérifiée de bout en bout.
       freeText: recipe.freeText,
-      missing: manquants,
-      uses: utilise.sort((a, b) => String(a.expiresAt ?? "9999").localeCompare(String(b.expiresAt ?? "9999"))),
+      ingredients,
+      haveCount: ingredients.filter((i) => i.status === "stock" || i.status === "toujours").length,
+      missingCount: ingredients.filter((i) => i.status === "manque" || i.status === "inconnu").length,
       urgent: presse.length > 0,
       soonest: echeance ?? null,
     });
   }
 
-  const recettes = resultats.sort((a, b) => {
-    if (a.urgent !== b.urgent) return a.urgent ? -1 : 1;
-    if (a.urgent && b.urgent) return String(a.soonest).localeCompare(String(b.soonest));
-    if (a.missing.length !== b.missing.length) return a.missing.length - b.missing.length;
-    // À égalité, la recette entièrement structurée passe devant : c'est celle sur
-    // laquelle la réponse est sûre.
-    if (a.freeText !== b.freeText) return a.freeText - b.freeText;
-    return a.name.localeCompare(b.name, "fr");
-  });
-
+  const recettes = resultats.sort((a, b) => a.name.localeCompare(b.name, "fr"));
   return { recettes, ignorees };
 }
 
@@ -220,4 +226,4 @@ function alimentsARelier({ index, links, products, limit = 40 }) {
     });
 }
 
-export { alimentsARelier, mots, niveau, normaliser, proposerProduit, recettesPossibles, stockParAliment };
+export { alimentsARelier, croiserRecettes, mots, niveau, normaliser, proposerProduit, stockParAliment };

@@ -81,7 +81,9 @@ opérations d'inventaire.
   et la section où aller le chercher. L'onglet porte le compte des deux premiers.
 - **Le foyer** — le premier compte invite les autres avec un code, valable sept jours et bon une
   seule fois. Chaque lot garde le nom de qui l'a posé là.
-- **Compte** — mot de passe, invitations, membres, et export JSON de tout l'inventaire.
+- **Compte** — mot de passe, invitations, membres, et export JSON de tout l'inventaire. Sur
+  téléphone il vit dans l'en-tête plutôt que dans la barre du bas, qui n'a de place que pour cinq
+  onglets et les réserve aux gestes quotidiens.
 
 ## Recettes (Mealie, optionnel)
 
@@ -102,9 +104,15 @@ Trois réponses possibles :
 - **toujours là** : le sel, l'huile, l'eau — ce qu'on ne compte pas mais qu'on a ;
 - **rien** : l'aliment est compté comme manquant.
 
-L'onglet propose alors deux listes : **à sauver**, les recettes qui consomment un lot périmant
-dans la semaine, et **avec ce qu'il y a**, le reste, classé par nombre d'ingrédients manquants —
-curseur réglable de zéro à trois.
+On part alors de la recette : on la cherche, on l'ouvre, et chaque ingrédient dit ce qu'on en a —
+« carotte : Carottes fanes botte, réfrigérateur, 2 pièces, dans 3 semaines ». Le but est de ne
+pas racheter ce qui dort au fond du congélateur. Le reste se copie en liste de courses d'un
+bouton. Trois filtres : **toutes**, **rien à acheter**, et **à sauver** (les recettes qui
+consomment un lot périmant dans la semaine).
+
+Un ingrédient absent se dit de deux façons, et la nuance compte : **à acheter** quand il est
+relié à un produit dont il ne reste plus rien, **non relié** quand on n'en sait simplement rien.
+Le second se corrige dans Correspondances, pas au magasin.
 
 Deux limites assumées :
 
