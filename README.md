@@ -80,6 +80,32 @@ expiry levels, server-side validation and the inventory operations.
   once. Every lot keeps the name of who put it there.
 - **Account** — password, invitations, members, and a JSON export of the whole inventory.
 
+## Recipes (Mealie, optional)
+
+Set `MEALIE_URL` and `MEALIE_TOKEN` (a long-lived token created in your Mealie profile) and a
+**Recettes** tab appears. Without them nothing changes: the tab does not exist.
+
+Gestock reads Mealie only to build an *index* — for each recipe, the ids of its ingredients. The
+index is rebuilt once a day in the background, or on demand; in between, answering "what can we
+cook" needs no network at all and survives a Mealie outage. Gestock never writes to Mealie: a
+read-only token is enough.
+
+What remains is saying which Mealie food matches which pantry product, in the **Correspondances**
+screen. Foods come sorted by how often they are used, with a proposal when the names line up
+("filet de poulet" recognises "Blanc de poulet 4 filets 300 g"). Three possible answers: linked to
+a product (available while a lot remains), *toujours là* (salt, oil, water — what you have but
+never inventory), or nothing at all, in which case the ingredient counts as missing.
+
+The tab then shows two lists: **à sauver**, recipes using a lot that expires within the week, and
+**avec ce qu'il y a**, the rest, ranked by how many ingredients are missing — a slider from zero
+to three.
+
+Two deliberate limits: the question answered is "do you have this ingredient", not "do you have
+enough" (converting 200 g of tomatoes into "one tin" is not solvable in general, and a wrong
+answer on quantities would be worse than none); and a recipe whose ingredients are **entirely**
+free text in Mealie is set aside and counted separately, since it would otherwise come out as
+"nothing missing" when nothing at all is known about it.
+
 ## Backing up
 
 The Docker volume survives `docker compose down`, but **not the loss of the machine**. The
@@ -129,6 +155,9 @@ history. Every open session is closed; restart the container for it to take effe
 - Barcodes: [src/lib/scan.ts](src/lib/scan.ts) uses the native `BarcodeDetector` where it exists
   (Chrome, Edge) and lazily loads a WebAssembly reader elsewhere (Safari, Firefox). The `.wasm`
   is served by the app itself, not by a CDN, so scanning survives an internet outage.
+- Mealie: queried **from the server** ([server/mealie.js](server/mealie.js)); the token never
+  reaches the browser. Matching recipes against the pantry is a pure computation
+  ([server/cuisine.js](server/cuisine.js)), so it is testable without a network.
 - Open Food Facts: queried **from the server** ([server/openfoodfacts.js](server/openfoodfacts.js)),
   which avoids CORS and caches answers for the whole household. The network is never required —
   an unknown code is typed in by hand.

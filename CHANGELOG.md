@@ -9,6 +9,13 @@ yet, so entries are grouped by the change that shipped them.
 
 ### Added
 
+- **Mealie link (optional).** With `MEALIE_URL` and `MEALIE_TOKEN` set, a Recettes tab crosses
+  the recipe book with the pantry: what can be cooked tonight, and above all what would save a lot
+  about to expire. Mealie is read from the server (the token never reaches the browser) into a
+  daily index of recipe ingredients, so the answer is instant and survives a Mealie outage.
+  Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
+  state for what is never inventoried. Recipes whose ingredients are entirely free text are set
+  aside and counted rather than reported as complete.
 - **First version.** Inventory of what is left in the freezer and the cupboards, by place and
   section, with quantities, storage dates and expiry dates.
 - **Barcode scanning** from the phone camera, with a lookup in Open Food Facts that pre-fills the

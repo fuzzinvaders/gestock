@@ -211,6 +211,9 @@ function deleteProduct(data, id) {
     return fail(`« ${product.name} » est encore rangé quelque part (${used} lot(s)).`);
   }
   data.products = data.products.filter((p) => p.id !== id);
+  // La correspondance Mealie qui pointait dessus part avec lui : la laisser
+  // désignerait un produit disparu, et l'aliment passerait pour disponible.
+  data.links = data.links.filter((l) => l.productId !== id);
   return { ok: true };
 }
 
@@ -318,9 +321,50 @@ function deleteLot(data, id) {
   return { ok: true };
 }
 
+// ---- Correspondances avec Mealie ----
+
+const MAX_LINKS = 2000;
+
+/**
+ * Relier un aliment Mealie à un produit du foyer, ou le déclarer toujours
+ * disponible. Trois états, et le troisième — non relié — se dit en supprimant
+ * la correspondance : un aliment sans réponse est simplement considéré manquant.
+ */
+function setLink(data, foodId, body) {
+  const foodName = validateName(body.foodName ?? "aliment");
+  if (!foodName.ok) return foodName;
+  const always = Boolean(body.always);
+  const productId = always ? null : (body.productId ?? null);
+
+  if (productId !== null) {
+    if (!data.products.some((p) => p.id === productId)) return fail("Produit introuvable.");
+  } else if (!always) {
+    return fail("Indiquez un produit, ou déclarez l'aliment toujours disponible.");
+  }
+
+  const link = { foodId, foodName: foodName.value, productId, always };
+  const idx = data.links.findIndex((l) => l.foodId === foodId);
+  if (idx === -1) {
+    if (data.links.length >= MAX_LINKS) return fail(`Pas plus de ${MAX_LINKS} correspondances.`);
+    data.links.push(link);
+  } else {
+    data.links[idx] = link;
+  }
+  return { ok: true, link };
+}
+
+function deleteLink(data, foodId) {
+  const before = data.links.length;
+  data.links = data.links.filter((l) => l.foodId !== foodId);
+  if (data.links.length === before) return fail("Correspondance introuvable.");
+  return { ok: true };
+}
+
 export {
   consumeLot,
   defaultPlaces,
+  deleteLink,
+  setLink,
   deleteLot,
   deletePlace,
   deleteProduct,

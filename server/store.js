@@ -302,7 +302,7 @@ function getSessionSecret() {
    deux évite de ressaisir le code-barres à chaque course, et permet de compter le
    stock d'un produit toutes réserves confondues. */
 function emptyInventory() {
-  return { places: [], products: [], lots: [] };
+  return { places: [], products: [], lots: [], links: [] };
 }
 
 function readInventory() {
@@ -313,6 +313,9 @@ function readInventory() {
       places: Array.isArray(parsed.places) ? parsed.places : [],
       products: Array.isArray(parsed.products) ? parsed.products : [],
       lots: Array.isArray(parsed.lots) ? parsed.lots : [],
+      // Correspondances entre les aliments de Mealie et les produits du foyer.
+      // Absentes tant que personne n'a branché de carnet de recettes.
+      links: Array.isArray(parsed.links) ? parsed.links : [],
     };
   } catch {
     return emptyInventory();

@@ -7,6 +7,8 @@ import { SetupScreen } from './features/auth/SetupScreen'
 import { ComptePage } from './features/compte/ComptePage'
 import { InventairePage } from './features/inventaire/InventairePage'
 import { ReservesPage } from './features/lieux/ReservesPage'
+import { LiensPage } from './features/recettes/LiensPage'
+import { RecettesPage } from './features/recettes/RecettesPage'
 import { AuthProvider, useAuth } from './hooks/useAuth'
 import { InventaireProvider } from './hooks/useInventaire'
 
@@ -46,6 +48,8 @@ function AppRoutes() {
           <Route path="/ajouter" element={<AjoutPage />} />
           <Route path="/alertes" element={<AlertesPage />} />
           <Route path="/reserves" element={<ReservesPage />} />
+          <Route path="/recettes" element={<RecettesPage />} />
+          <Route path="/recettes/liens" element={<LiensPage />} />
           <Route path="/compte" element={<ComptePage />} />
           <Route path="*" element={<Navigate to="/inventaire" replace />} />
         </Routes>

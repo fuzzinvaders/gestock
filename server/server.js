@@ -14,9 +14,12 @@
  * Inventaire : GET /api/data, GET /api/export, POST/PATCH/DELETE /api/places(/:id),
  *              /api/products(/:id), /api/lots(/:id), POST /api/lots/:id/consume
  * Codes-barres : GET /api/lookup?ean=…
+ * Recettes   : GET /api/mealie, POST /api/mealie/refresh, GET /api/mealie/recettes,
+ *              GET /api/mealie/aliments, PUT/DELETE /api/mealie/links/:foodId
  * Santé      : GET /healthz — jamais protégé (utilisé par le HEALTHCHECK Docker)
  *
- * Environnement : PORT, HOST, DATA_DIR, AUTH_SECRET, ORIGIN, OFF_BASE_URL, OFF_USER_AGENT
+ * Environnement : PORT, HOST, DATA_DIR, AUTH_SECRET, ORIGIN, OFF_BASE_URL, OFF_USER_AGENT,
+ *                 MEALIE_URL, MEALIE_TOKEN
  */
 
 import http from "node:http";
@@ -27,15 +30,19 @@ import * as store from "./store.js";
 import {
   consumeLot,
   defaultPlaces,
+  deleteLink,
   deleteLot,
   deletePlace,
   deleteProduct,
+  setLink,
   upsertLot,
   upsertPlace,
   upsertProduct,
 } from "./inventaire.js";
 import { lookup } from "./openfoodfacts.js";
-import { validateBody, validateEan, validateId } from "./validate.js";
+import * as mealie from "./mealie.js";
+import { alimentsARelier, recettesPossibles } from "./cuisine.js";
+import { validateBody, validateEan, validateId, validateStoredAt } from "./validate.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -247,7 +254,7 @@ function applyInventory(res, mutate) {
   // « entity » est la ligne qui vient d'être touchée : l'écran d'ajout en a besoin
   // tout de suite, pour enchaîner sur le lot sans rechercher le produit qu'il
   // vient lui-même de créer.
-  const entity = result.place ?? result.product ?? result.lot ?? null;
+  const entity = result.place ?? result.product ?? result.lot ?? result.link ?? null;
   return sendJson(res, 200, { ...store.readInventory(), entity });
 }
 
@@ -403,6 +410,105 @@ async function handleApi(req, res, pathname) {
     if (known) return sendJson(res, 200, { found: true, source: "gestock", product: known });
     const result = await lookup(ean.value);
     return sendJson(res, 200, result);
+  }
+
+  // ---- Recettes (Mealie) ----
+
+  if (pathname.startsWith("/api/mealie")) {
+    const query = new URL(req.url, "http://x").searchParams;
+
+    if (pathname === "/api/mealie" && req.method === "GET") {
+      const { index, stale } = mealie.getIndex();
+      return sendJson(res, 200, {
+        configured: mealie.isConfigured(),
+        url: mealie.BASE_URL,
+        stale,
+        fetchedAt: index?.fetchedAt ?? null,
+        recipeCount: index?.recipes?.length ?? 0,
+        foodCount: index?.foods?.length ?? 0,
+        links: store.readInventory().links,
+      });
+    }
+
+    if (!mealie.isConfigured()) {
+      return sendJson(res, 400, {
+        error: "Mealie n'est pas configuré (MEALIE_URL et MEALIE_TOKEN).",
+      });
+    }
+
+    if (pathname === "/api/mealie/refresh" && req.method === "POST") {
+      // Le seul appel qui fait attendre : une requête par recette. Il est déclenché
+      // à la main, ou une fois par jour en arrière-plan par getIndex.
+      const result = await mealie.refreshIndex();
+      if (!result.ok) return sendJson(res, 502, { error: result.error });
+      return sendJson(res, 200, {
+        fetchedAt: result.index.fetchedAt,
+        recipeCount: result.index.recipes.length,
+        foodCount: result.index.foods.length,
+      });
+    }
+
+    if (pathname === "/api/mealie/recettes" && req.method === "GET") {
+      const { index, stale } = mealie.getIndex();
+      if (!index) {
+        return sendJson(res, 200, { recipes: [], stale: true, fetchedAt: null, linkCount: 0 });
+      }
+      // Le jour vient du téléphone : c'est lui qui sait s'il est déjà demain.
+      const today = validateStoredAt(query.get("today"));
+      const max = Math.min(Math.max(Number(query.get("max") ?? 3) || 0, 0), 5);
+      const inventory = store.readInventory();
+      const { recettes, ignorees } = recettesPossibles({
+        index,
+        links: inventory.links,
+        products: inventory.products,
+        lots: inventory.lots,
+        today: today.ok ? today.value : new Date().toISOString().slice(0, 10),
+        maxMissing: max,
+      });
+      return sendJson(res, 200, {
+        recipes: recettes,
+        ignored: ignorees,
+        stale,
+        fetchedAt: index.fetchedAt,
+        linkCount: inventory.links.length,
+        foodCount: index.foods?.length ?? 0,
+      });
+    }
+
+    if (pathname === "/api/mealie/aliments" && req.method === "GET") {
+      const inventory = store.readInventory();
+      const search = String(query.get("q") ?? "").trim();
+      if (search.length >= 2) {
+        // Recherche dans tout le catalogue Mealie : pour relier un aliment qui
+        // n'apparaît encore dans aucune recette, ou corriger un mauvais choix.
+        const found = await mealie.searchFoods(search);
+        return sendJson(res, 200, {
+          foods: found.map((f) => ({ foodId: f.id, foodName: f.name, count: 0, suggestion: null })),
+        });
+      }
+      const { index } = mealie.getIndex();
+      if (!index) return sendJson(res, 200, { foods: [] });
+      return sendJson(res, 200, {
+        foods: alimentsARelier({ index, links: inventory.links, products: inventory.products }),
+      });
+    }
+
+    const linkParts = segments(pathname); // ["api", "mealie", "links", foodId]
+    if (linkParts[2] === "links" && linkParts[3]) {
+      const foodId = validateId(linkParts[3], "L'identifiant de l'aliment");
+      if (!foodId.ok) return sendJson(res, 400, { error: foodId.error });
+
+      if (req.method === "PUT") {
+        const body = validateBody(await readJsonBody(req));
+        if (!body.ok) return sendJson(res, 400, { error: body.error });
+        return applyInventory(res, (data) => setLink(data, foodId.value, body.value));
+      }
+      if (req.method === "DELETE") {
+        return applyInventory(res, (data) => deleteLink(data, foodId.value));
+      }
+    }
+
+    return sendJson(res, 404, { error: "Route inconnue" });
   }
 
   const parts = segments(pathname); // ["api", collection, id?, action?]

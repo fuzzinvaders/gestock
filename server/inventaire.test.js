@@ -10,7 +10,7 @@ import {
 } from "./inventaire.js";
 
 function maison() {
-  const data = { places: [], products: [], lots: [] };
+  const data = { places: [], products: [], lots: [], links: [] };
   const place = upsertPlace(data, null, {
     name: "Congélateur",
     kind: "congelateur",

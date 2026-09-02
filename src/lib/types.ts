@@ -50,11 +50,66 @@ export interface SafeUser {
   createdAt: string
 }
 
+/**
+ * Correspondance entre un aliment du carnet Mealie et le placard.
+ * `always` désigne ce qu'on ne compte pas — le sel, l'huile, l'eau — et qui doit
+ * néanmoins être considéré comme disponible.
+ */
+export interface FoodLink {
+  foodId: string
+  foodName: string
+  productId: string | null
+  always: boolean
+}
+
 export interface Inventory {
   places: Place[]
   products: Product[]
   lots: Lot[]
+  links: FoodLink[]
   users: SafeUser[]
+}
+
+/** Un aliment Mealie encore sans réponse, avec le produit que le serveur propose. */
+export interface PendingFood {
+  foodId: string
+  foodName: string
+  count: number
+  suggestion: { productId: string; productName: string } | null
+}
+
+export interface RecipeUse {
+  foodId: string
+  foodName: string
+  productId: string
+  productName: string
+  lotId: string
+  expiresAt: string | null
+  level: 'perime' | 'urgent' | 'bientot' | 'ok' | 'sans'
+}
+
+export interface RecipeSuggestion {
+  slug: string
+  name: string
+  url: string
+  image: string
+  totalTime: string | null
+  servings: number | null
+  /** Lignes d'ingrédients en texte libre : invérifiables, donc signalées. */
+  freeText: number
+  missing: { id: string; name: string }[]
+  uses: RecipeUse[]
+  urgent: boolean
+  soonest: string | null
+}
+
+export interface MealieStatus {
+  configured: boolean
+  url: string
+  stale: boolean
+  fetchedAt: number | null
+  recipeCount: number
+  foodCount: number
 }
 
 export interface Invite {

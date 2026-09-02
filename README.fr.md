@@ -83,6 +83,39 @@ opérations d'inventaire.
   seule fois. Chaque lot garde le nom de qui l'a posé là.
 - **Compte** — mot de passe, invitations, membres, et export JSON de tout l'inventaire.
 
+## Recettes (Mealie, optionnel)
+
+Renseigne `MEALIE_URL` et `MEALIE_TOKEN` (un jeton longue durée créé dans ton profil Mealie) et
+un onglet **Recettes** apparaît. Sans ces variables, rien ne change : l'onglet n'existe pas.
+
+Gestock ne lit Mealie que pour construire un *index* — pour chaque recette, la liste des
+identifiants de ses ingrédients. L'index est refait une fois par jour en arrière-plan, ou à la
+demande ; entre deux, répondre à « qu'est-ce qu'on mange » ne demande aucun réseau et survit à
+une panne de Mealie. Gestock n'écrit jamais rien dans Mealie : un jeton en lecture suffit.
+
+Reste à dire quel aliment Mealie correspond à quel produit du placard, dans l'écran
+**Correspondances**. Les aliments arrivent du plus utilisé au moins utilisé, avec une proposition
+quand les noms concordent (« filet de poulet » reconnaît « Blanc de poulet 4 filets 300 g »).
+Trois réponses possibles :
+
+- **relié à un produit** : disponible tant qu'il en reste un lot ;
+- **toujours là** : le sel, l'huile, l'eau — ce qu'on ne compte pas mais qu'on a ;
+- **rien** : l'aliment est compté comme manquant.
+
+L'onglet propose alors deux listes : **à sauver**, les recettes qui consomment un lot périmant
+dans la semaine, et **avec ce qu'il y a**, le reste, classé par nombre d'ingrédients manquants —
+curseur réglable de zéro à trois.
+
+Deux limites assumées :
+
+- La question posée est « as-tu cet ingrédient », pas « en as-tu assez ». Convertir 200 g de
+  tomates en « une boîte » n'est pas soluble dans le cas général, et une réponse fausse sur les
+  quantités serait pire que pas de réponse du tout.
+- Une recette dont **aucun** ingrédient n'est structuré dans Mealie (tout en texte libre) est
+  écartée et comptée à part : elle ressortirait « il ne manque rien » alors qu'on ne sait rien
+  d'elle. Les recettes partiellement structurées sont proposées, avec le nombre de lignes non
+  vérifiées.
+
 ## Sauvegarder
 
 Le volume Docker survit à `docker compose down`, mais **pas à la perte de la machine**. La
@@ -134,6 +167,9 @@ que ce soit pris en compte.
   existe (Chrome, Edge) et charge un lecteur WebAssembly ailleurs (Safari, Firefox), seulement
   au moment voulu. Le `.wasm` est servi par l'app, pas par un CDN : le scan survit à une coupure
   d'Internet.
+- Mealie : interrogé **depuis le serveur** ([server/mealie.js](server/mealie.js)), le jeton ne
+  descend jamais dans le navigateur. Le croisement recettes/placard est un calcul pur
+  ([server/cuisine.js](server/cuisine.js)), donc testable sans réseau.
 - Open Food Facts : interrogé **depuis le serveur**
   ([server/openfoodfacts.js](server/openfoodfacts.js)), ce qui évite le CORS et met les réponses
   en cache pour tout le foyer. Le réseau n'est jamais obligatoire — un code inconnu se saisit à

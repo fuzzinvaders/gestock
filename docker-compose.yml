@@ -30,6 +30,10 @@ services:
       # Secret de signature des sessions (openssl rand -hex 32). Si vide, un secret
       # aléatoire est généré et persisté dans le volume de données.
       AUTH_SECRET: ${AUTH_SECRET:-}
+      # Carnet de recettes Mealie (optionnel) : sans ces deux valeurs, l'onglet
+      # Recettes n'apparaît pas et le reste fonctionne à l'identique.
+      MEALIE_URL: ${MEALIE_URL:-}
+      MEALIE_TOKEN: ${MEALIE_TOKEN:-}
     volumes:
       # Persiste les comptes et l'inventaire (réserves, produits, lots).
       - gestock-data:/data

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
 import { Card } from '../../components/ui/Card'
 import { ErrorText, Field, Input } from '../../components/ui/Field'
@@ -28,6 +29,19 @@ export function ComptePage() {
         <Stat value={lots.length} label="lots" />
         <Stat value={products.length} label="produits" />
         <Stat value={places.length} label="réserves" />
+      </Card>
+
+      <Card className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="font-medium text-slate-100">Réserves</h2>
+          <p className="text-sm text-slate-400">Congélateurs, placards, et leurs sections.</p>
+        </div>
+        <Link
+          to="/reserves"
+          className="shrink-0 rounded-lg bg-slate-800 px-4 py-2 font-medium text-slate-100 hover:bg-slate-700"
+        >
+          Ouvrir
+        </Link>
       </Card>
 
       <MotDePasse />
