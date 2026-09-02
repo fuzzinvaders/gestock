@@ -88,6 +88,11 @@ function Carnet() {
           {mealie.token
             ? `${mealie.token.apercu} (${mealie.token.length} caractères)`
             : 'aucun'}
+          {mealie.token && !mealie.token.jwt ? (
+            <span className="block text-xs text-amber-300">
+              forme inattendue — un jeton Mealie compte trois parties séparées par des points
+            </span>
+          ) : null}
         </dd>
         <dt className="text-slate-500">Dernière lecture</dt>
         <dd className="text-right text-slate-300">

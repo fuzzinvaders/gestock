@@ -59,8 +59,14 @@ function isConfigured() {
  */
 function tokenHint() {
   if (!TOKEN) return null;
-  if (TOKEN.length <= 12) return { length: TOKEN.length, apercu: "trop court" };
-  return { length: TOKEN.length, apercu: `${TOKEN.slice(0, 6)}…${TOKEN.slice(-4)}` };
+  /* Un jeton Mealie est un JWT : trois parties séparées par des points. Vérifier
+     la forme distingue « la variable n'est pas arrivée » de « elle est arrivée
+     déformée » — un .env écrit avec des deux-points au lieu du signe égal, une
+     valeur entre guillemets, un préfixe collé. Trois pannes qui donnent le même
+     refus côté serveur et qu'on ne sait pas départager sans regarder. */
+  const jwt = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(TOKEN);
+  if (TOKEN.length <= 12) return { length: TOKEN.length, apercu: "trop court", jwt };
+  return { length: TOKEN.length, apercu: `${TOKEN.slice(0, 6)}…${TOKEN.slice(-4)}`, jwt };
 }
 
 async function call(pathname, params = {}) {
