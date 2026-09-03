@@ -51,6 +51,24 @@ describe("defaultPlaces", () => {
 });
 
 describe("upsertPlace", () => {
+  it("ramène une section dans le meuble quand on retire une colonne", () => {
+    // Le frigo américain redevient un simple placard : la porte de droite
+    // n'existe plus, mais ses étagères ne doivent pas disparaître du dessin.
+    const { data } = maison();
+    const large = upsertPlace(data, null, {
+      name: "Frigo américain",
+      kind: "frigo",
+      columns: 2,
+      sections: [{ name: "Congélation" }, { name: "Clayette", column: 1 }],
+    }).place;
+    expect(large.sections.map((s) => s.column)).toEqual([0, 1]);
+    const reduit = upsertPlace(data, large.id, {
+      columns: 1,
+      sections: large.sections.map((s) => ({ id: s.id, name: s.name, column: s.column })),
+    }).place;
+    expect(reduit.sections.map((s) => s.column)).toEqual([0, 0]);
+  });
+
   it("refuse deux réserves du même nom", () => {
     const { data } = maison();
     const result = upsertPlace(data, null, { name: "congélateur", kind: "frigo" });

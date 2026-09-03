@@ -73,7 +73,8 @@ opérations d'inventaire.
 - **Réserves et sections** — une réserve est un congélateur, un placard, une cave ; les sections
   en sont les tiroirs et les étages. « Ouvrir » en donne le dessin : les sections empilées comme
   les tiroirs qu'elles sont, leur contenu visible d'un coup d'œil, et un bouton **Ajouter ici**
-  par tiroir — on range là où l'on regarde, sans redérouler un menu debout devant le congélateur
+  par tiroir. Un meuble peut avoir plusieurs battants — deux colonnes pour un frigo américain,
+  porte gauche et porte droite, chaque section rangée de son côté — on range là où l'on regarde, sans redérouler un menu debout devant le congélateur
   ouvert. Retirer une section ne supprime rien : ses lots remontent dans la réserve.
 - **Quantités** — chaque lot porte ce qu'il en reste, dans l'unité du produit. « J'en prends »
   décompte ce qu'on emporte ; quand il ne reste rien, le lot quitte l'inventaire.

@@ -17,6 +17,9 @@ const MAX_BRAND = 60;
 const MAX_CATEGORY = 40;
 const MAX_NOTE = 200;
 const MAX_SECTIONS = 30;
+/* Deux colonnes suffisent à tout ce qui se rencontre dans une cuisine : un
+   meuble simple, ou un frigo américain à deux portes. Trois laisse la marge. */
+const MAX_COLUMNS = 3;
 const MAX_QUANTITY = 100000;
 // Une conserve de bœuf tient cinq ans, pas cinquante : au-delà, c'est une faute de frappe
 // sur l'année, et la ligne polluerait tous les tris par date.
@@ -96,10 +99,28 @@ function validateSections(raw, existing = []) {
     const key = name.value.toLowerCase();
     if (seen.has(key)) return fail(`Deux sections portent le nom « ${name.value} ».`);
     seen.add(key);
+    /* La colonne où poser la section dans le dessin. Un placard n'en a qu'une ;
+       un frigo américain en a deux, la porte de gauche et celle de droite. C'est
+       la seule donnée de forme que l'on demande : l'ordre vertical vient déjà de
+       l'ordre de la liste. */
+    const column = Number(item?.column ?? 0);
+    if (!Number.isInteger(column) || column < 0 || column >= MAX_COLUMNS) {
+      return fail("La colonne d'une section est invalide.");
+    }
     const known = typeof item?.id === "string" ? existing.find((s) => s.id === item.id) : null;
-    sections.push({ id: known ? known.id : null, name: name.value });
+    sections.push({ id: known ? known.id : null, name: name.value, column });
   }
   return ok(sections);
+}
+
+/** Le nombre de battants d'un meuble : un placard, ou les deux portes d'un frigo américain. */
+function validateColumns(raw) {
+  if (raw === undefined || raw === null || raw === "") return ok(1);
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < 1 || value > MAX_COLUMNS) {
+    return fail(`Une réserve compte de 1 à ${MAX_COLUMNS} colonnes.`);
+  }
+  return ok(value);
 }
 
 /* EAN-8, UPC-A (12) et EAN-13, plus le format à 14 chiffres des cartons. La clé
@@ -204,6 +225,7 @@ export {
   validateBody,
   validateBrand,
   validateCategory,
+  validateColumns,
   validateDate,
   validateEan,
   validateExpiresAt,

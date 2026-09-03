@@ -3,19 +3,23 @@ import { Button } from '../../components/ui/Button'
 import { ErrorText, Field, Input, Select } from '../../components/ui/Field'
 import { Modal } from '../../components/ui/Modal'
 import { useInventaire } from '../../hooks/useInventaire'
-import { PLACE_KINDS, type Place, type PlaceKind } from '../../lib/types'
+import { PLACE_KINDS, type Place, type PlaceKind, type Section } from '../../lib/types'
 
 interface SectionDraft {
   id?: string
   name: string
+  column: number
 }
 
 export function ReserveModal({ place, onClose }: { place: Place | null; onClose: () => void }) {
   const { savePlace } = useInventaire()
   const [name, setName] = useState(place?.name ?? '')
   const [kind, setKind] = useState<PlaceKind>(place?.kind ?? 'placard')
+  const [columns, setColumns] = useState(place?.columns ?? 1)
   const [sections, setSections] = useState<SectionDraft[]>(
-    place?.sections.map((s) => ({ id: s.id, name: s.name })) ?? [{ name: 'Étage 1' }],
+    place?.sections.map((s) => ({ id: s.id, name: s.name, column: s.column ?? 0 })) ?? [
+      { name: 'Étage 1', column: 0 },
+    ],
   )
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -32,11 +36,12 @@ export function ReserveModal({ place, onClose }: { place: Place | null; onClose:
       await savePlace(place?.id ?? null, {
         name,
         kind,
+        columns,
         // Les lignes laissées vides sont des sections que l'on vient de retirer :
         // inutile de les faire refuser par le serveur.
         sections: sections
           .filter((s) => s.name.trim() !== '')
-          .map((s) => ({ id: s.id, name: s.name }) as { id: string; name: string }),
+          .map((s) => ({ id: s.id, name: s.name, column: s.column }) as unknown as Section),
       })
       onClose()
     } catch (err) {
@@ -62,6 +67,17 @@ export function ReserveModal({ place, onClose }: { place: Place | null; onClose:
           </Select>
         </Field>
 
+        <Field
+          label="Battants"
+          hint="Deux pour un frigo américain : une colonne par porte. Une seule sinon."
+        >
+          <Select value={columns} onChange={(e) => setColumns(Number(e.target.value))}>
+            <option value={1}>Un seul meuble</option>
+            <option value={2}>Deux portes côte à côte</option>
+            <option value={3}>Trois colonnes</option>
+          </Select>
+        </Field>
+
         <div>
           <span className="mb-1 block text-sm font-medium text-slate-300">
             Étages, tiroirs, bacs
@@ -74,6 +90,26 @@ export function ReserveModal({ place, onClose }: { place: Place | null; onClose:
                   onChange={(e) => setSection(index, e.target.value)}
                   placeholder={`Section ${index + 1}`}
                 />
+                {columns > 1 ? (
+                  <Select
+                    value={section.column}
+                    onChange={(e) =>
+                      setSections((list) =>
+                        list.map((s, i) =>
+                          i === index ? { ...s, column: Number(e.target.value) } : s,
+                        ),
+                      )
+                    }
+                    className="w-28 shrink-0"
+                    aria-label="Colonne"
+                  >
+                    {Array.from({ length: columns }, (_, c) => (
+                      <option key={c} value={c}>
+                        {c === 0 ? 'Gauche' : c === 1 ? 'Droite' : `Colonne ${c + 1}`}
+                      </option>
+                    ))}
+                  </Select>
+                ) : null}
                 <Button
                   type="button"
                   variant="ghost"
@@ -87,7 +123,7 @@ export function ReserveModal({ place, onClose }: { place: Place | null; onClose:
           </div>
           <button
             type="button"
-            onClick={() => setSections((list) => [...list, { name: '' }])}
+            onClick={() => setSections((list) => [...list, { name: '', column: 0 }])}
             className="mt-2 text-sm text-emerald-400 hover:text-emerald-300"
           >
             + Ajouter une section

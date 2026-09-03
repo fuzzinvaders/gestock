@@ -3,12 +3,16 @@ export type PlaceKind = 'congelateur' | 'frigo' | 'placard' | 'cave' | 'autre'
 export interface Section {
   id: string
   name: string
+  /** Colonne du dessin : 0 à gauche. Un frigo américain en a deux. */
+  column: number
 }
 
 export interface Place {
   id: string
   name: string
   kind: PlaceKind
+  /** Nombre de battants du meuble, 1 par défaut. */
+  columns: number
   sections: Section[]
   createdAt: string
 }

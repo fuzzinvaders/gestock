@@ -13,6 +13,7 @@ import crypto from "node:crypto";
 import {
   validateBrand,
   validateCategory,
+  validateColumns,
   validateEan,
   validateExpiresAt,
   validateImageUrl,
@@ -89,6 +90,8 @@ function upsertPlace(data, id, body) {
   if (!name.ok) return name;
   const kind = validatePlaceKind(body.kind ?? existing?.kind ?? "placard");
   if (!kind.ok) return kind;
+  const columns = validateColumns(body.columns ?? existing?.columns);
+  if (!columns.ok) return columns;
   const sections = validateSections(body.sections, existing?.sections ?? []);
   if (!sections.ok) return sections;
 
@@ -99,7 +102,13 @@ function upsertPlace(data, id, body) {
 
   // Une section supprimée laisse des lots orphelins : ils remontent d'un cran, dans
   // la réserve elle-même. Perdre l'étage est moins grave que perdre le surgelé.
-  const kept = sections.value.map((s) => ({ id: s.id ?? newId(), name: s.name }));
+  // Une section rangée dans une colonne qui n'existe plus revient à la première :
+  // réduire le meuble ne doit pas faire disparaître un tiroir du dessin.
+  const kept = sections.value.map((s) => ({
+    id: s.id ?? newId(),
+    name: s.name,
+    column: s.column < columns.value ? s.column : 0,
+  }));
   if (existing) {
     const stillThere = new Set(kept.map((s) => s.id));
     for (const lot of data.lots) {
@@ -109,6 +118,7 @@ function upsertPlace(data, id, body) {
     }
     existing.name = name.value;
     existing.kind = kind.value;
+    existing.columns = columns.value;
     existing.sections = kept;
     return { ok: true, place: existing };
   }
@@ -117,6 +127,7 @@ function upsertPlace(data, id, body) {
     id: newId(),
     name: name.value,
     kind: kind.value,
+    columns: columns.value,
     sections: kept,
     createdAt: new Date().toISOString(),
   };

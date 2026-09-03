@@ -67,13 +67,24 @@ describe("validateSections", () => {
     const existing = [{ id: "s1", name: "Tiroir 1" }];
     const result = validateSections([{ id: "s1", name: "Tiroir du haut" }, { name: "Tiroir 2" }], existing);
     expect(result.ok).toBe(true);
-    expect(result.value[0]).toEqual({ id: "s1", name: "Tiroir du haut" });
+    expect(result.value[0]).toEqual({ id: "s1", name: "Tiroir du haut", column: 0 });
     // La nouvelle section n'a pas encore d'identité : c'est l'appelant qui la crée.
-    expect(result.value[1]).toEqual({ id: null, name: "Tiroir 2" });
+    expect(result.value[1]).toEqual({ id: null, name: "Tiroir 2", column: 0 });
   });
 
   it("refuse deux sections du même nom", () => {
     expect(validateSections([{ name: "Étage 1" }, { name: "étage 1" }]).ok).toBe(false);
+  });
+
+  it("range les sections dans leur colonne, la première par défaut", () => {
+    // Les deux portes d'un frigo américain : gauche et droite.
+    const result = validateSections([{ name: "Tiroir haut", column: 0 }, { name: "Clayette", column: 1 }]);
+    expect(result.value.map((s) => s.column)).toEqual([0, 1]);
+    expect(validateSections([{ name: "Étage 1" }]).value[0].column).toBe(0);
+  });
+
+  it("refuse une colonne hors du meuble", () => {
+    expect(validateSections([{ name: "Nulle part", column: 9 }]).ok).toBe(false);
   });
 
   it("oublie l'identité d'une section inconnue", () => {

@@ -17,6 +17,9 @@ yet, so entries are grouped by the change that shipped them.
   Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
   state for what is never inventoried. Recipes whose ingredients are entirely free text are set
   aside and counted rather than reported as complete.
+- **Places can have several doors.** A place declares how many columns it has, and each section
+  says which one it belongs to, so a side-by-side American fridge draws as what it is: freezer
+  drawers on the left, shelves and bins on the right.
 - **Quantities.** Each lot carries its own unit — the same chicken is stored once as 4 pieces,
   once as 600 g — and recipe amounts are now kept in the index instead of being dropped. Where the
   units belong to the same family (mass, volume, count) the ingredient line says whether there is
