@@ -248,6 +248,12 @@ function upsertLot(data, id, body, username) {
 
   const quantity = validatePositiveQuantity(body.quantity ?? existing?.quantity);
   if (!quantity.ok) return quantity;
+  /* L'unité est portée par le lot, pas seulement par le produit : le même
+     « poulet » se range une fois en barquette de 4 pièces et une fois en 600 g,
+     et c'est ce qui est écrit sur l'emballage qu'on veut retrouver. Le produit ne
+     fournit plus qu'une valeur par défaut. */
+  const unit = validateUnit(body.unit ?? existing?.unit ?? product.unit);
+  if (!unit.ok) return unit;
   const storedAt = validateStoredAt(body.storedAt ?? existing?.storedAt);
   if (!storedAt.ok) return storedAt;
   const expiresAt = validateExpiresAt(
@@ -267,6 +273,7 @@ function upsertLot(data, id, body, username) {
       placeId: placement.value.placeId,
       sectionId: placement.value.sectionId,
       quantity: quantity.value,
+      unit: unit.value,
       storedAt: storedAt.value,
       expiresAt: expiresAt.value,
       note: note.value,
@@ -282,6 +289,7 @@ function upsertLot(data, id, body, username) {
     placeId: placement.value.placeId,
     sectionId: placement.value.sectionId,
     quantity: quantity.value,
+    unit: unit.value,
     storedAt: storedAt.value,
     expiresAt: expiresAt.value,
     note: note.value,

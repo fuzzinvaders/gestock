@@ -129,6 +129,82 @@ describe("croiserRecettes", () => {
     expect(ingredient(risotto, "f-safran").status).toBe("inconnu");
   });
 
+  it("dit s'il y en a assez quand les unités se traduisent", () => {
+    // La recette demande 500 g, le placard contient un paquet de 750 g.
+    const carnet = {
+      foods: index.foods,
+      recipes: [
+        {
+          ...index.recipes[0],
+          besoins: { "f-pois": { quantity: 500, unit: "grammes" } },
+        },
+      ],
+    };
+    const resultat = croiserRecettes({
+      index: carnet,
+      links,
+      products: produits,
+      places: lieux,
+      lots: [{ ...lot("l1", "p-pois", "2027-01-01"), quantity: 750, unit: "g" }],
+      today: AUJOURDHUI,
+    });
+    const pois = ingredient(resultat.recettes[0], "f-pois");
+    expect(pois.besoin).toEqual({ quantity: 500, unit: "grammes" });
+    expect(pois.assez).toBe(true);
+    expect(pois.manque).toBe(null);
+  });
+
+  it("chiffre ce qui manque dans l'unité de la recette", () => {
+    const carnet = {
+      foods: index.foods,
+      recipes: [{ ...index.recipes[0], besoins: { "f-pois": { quantity: 1, unit: "kg" } } }],
+    };
+    const resultat = croiserRecettes({
+      index: carnet,
+      links,
+      products: produits,
+      places: lieux,
+      lots: [{ ...lot("l1", "p-pois", "2027-01-01"), quantity: 750, unit: "g" }],
+      today: AUJOURDHUI,
+    });
+    const pois = ingredient(resultat.recettes[0], "f-pois");
+    expect(pois.assez).toBe(false);
+    expect(pois.manque).toBe(0.25); // 250 g, dits en kilos comme la recette
+  });
+
+  it("ne tranche pas quand les unités ne se traduisent pas", () => {
+    // Deux cuillères à soupe face à des grammes : sans savoir de quoi il s'agit,
+    // la conversion serait une invention.
+    const carnet = {
+      foods: index.foods,
+      recipes: [
+        {
+          ...index.recipes[0],
+          besoins: { "f-pois": { quantity: 2, unit: "cuillère à soupe" } },
+        },
+      ],
+    };
+    const resultat = croiserRecettes({
+      index: carnet,
+      links,
+      products: produits,
+      places: lieux,
+      lots: [{ ...lot("l1", "p-pois", "2027-01-01"), quantity: 750, unit: "g" }],
+      today: AUJOURDHUI,
+    });
+    const pois = ingredient(resultat.recettes[0], "f-pois");
+    expect(pois.assez).toBe(null);
+    expect(pois.besoin).toEqual({ quantity: 2, unit: "cuillère à soupe" });
+  });
+
+  it("retient l'unité du lot, pas celle du produit", () => {
+    // Le même poulet se range une fois en pièces, une fois en grammes.
+    const resultat = croiser([{ ...lot("l1", "p-poulet", "2027-01-01"), quantity: 600, unit: "g" }])
+    const poulet = ingredient(recette(resultat, "poulet-petits-pois"), "f-poulet");
+    expect(poulet.unit).toBe("g");
+    expect(poulet.quantity).toBe(600);
+  });
+
   it("compte ce qu'on a et ce qui manque", () => {
     const rec = recette(croiser([lot("l1", "p-pois", "2027-01-01")]), "poulet-petits-pois");
     expect(rec.haveCount).toBe(2); // les petits pois, et le sel toujours là

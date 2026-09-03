@@ -34,6 +34,8 @@ export interface Lot {
   placeId: string
   sectionId: string | null
   quantity: number
+  /** L'unité de CE lot : le même produit se range en pièces ou en grammes. */
+  unit: string
   storedAt: string
   expiresAt: string | null
   note: string
@@ -89,6 +91,12 @@ export interface RecipeIngredient {
   foodId: string
   name: string
   status: IngredientStatus
+  /** Ce que la recette demande, tel qu'écrit dans Mealie. */
+  besoin: { quantity: number; unit: string } | null
+  /** true / false quand les unités se traduisent, null quand elles ne se traduisent pas. */
+  assez?: boolean | null
+  /** Ce qui manque, dans l'unité de la recette. */
+  manque?: number | null
   productId?: string
   productName?: string
   placeName?: string | null

@@ -17,6 +17,11 @@ yet, so entries are grouped by the change that shipped them.
   Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
   state for what is never inventoried. Recipes whose ingredients are entirely free text are set
   aside and counted rather than reported as complete.
+- **Quantities.** Each lot carries its own unit — the same chicken is stored once as 4 pieces,
+  once as 600 g — and recipe amounts are now kept in the index instead of being dropped. Where the
+  units belong to the same family (mass, volume, count) the ingredient line says whether there is
+  enough, or how much is short, and the shopping list carries the shortfall. Where they do not,
+  nothing is claimed: "quantité non comparable" beats an invented verdict.
 - **Mealie errors now carry the response body**, not just the status code: "HTTP 403" alone does
   not say whether the refusal comes from Mealie, from a reverse proxy or from a firewall sitting
   in front of it. HTML error pages are stripped of their tags so the message stays one line.

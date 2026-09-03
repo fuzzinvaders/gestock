@@ -51,7 +51,7 @@ export function LotRow({
 
       <span className="shrink-0 text-right">
         <span className="block font-medium text-slate-200">
-          {lot.quantity} {product?.unit ?? ''}
+          {lot.quantity} {lot.unit || product?.unit || ''}
         </span>
         <span className={`mt-0.5 inline-block rounded border px-1.5 py-0.5 text-[0.65rem] ${BADGE[level]}`}>
           {expiryLabel(lot.expiresAt)}

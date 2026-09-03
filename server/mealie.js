@@ -45,7 +45,7 @@ const MAX_RECIPES = 2000;
 /* Forme de l'index. L'incrémenter périme d'un coup les index déjà sur disque :
    une correction du contenu — un nom d'aliment perdu, par exemple — ne demande
    alors aucun geste, l'index se refait au premier affichage suivant. */
-const INDEX_VERSION = 2;
+const INDEX_VERSION = 3;
 
 function isConfigured() {
   return Boolean(BASE_URL && TOKEN);
@@ -152,18 +152,35 @@ function summarise(recipe, groupSlug) {
      acheter, ni même comprendre. Un aliment cité par une recette porte forcément
      son nom dans cette recette : la source la plus sûre est la plus proche. */
   const foodNames = {};
+  /* La quantité demandée, par aliment : « 500 grammes de dinde » n'est pas « de la
+     dinde ». Sans elle, l'application savait dire qu'on avait l'ingrédient, jamais
+     s'il y en avait assez — et c'est pourtant la question qu'on se pose la liste
+     de courses à la main. Un aliment cité deux fois voit ses quantités additionnées
+     quand l'unité est la même ; sinon la première l'emporte, faute de savoir les
+     réunir. */
+  const besoins = {};
   let freeText = 0;
   for (const line of recipe.recipeIngredient ?? []) {
     if (line.food?.id) {
-      if (!foodIds.includes(line.food.id)) foodIds.push(line.food.id);
+      const id = line.food.id;
+      if (!foodIds.includes(id)) foodIds.push(id);
       const nom = String(line.food.name ?? "").trim();
-      if (nom) foodNames[line.food.id] = nom;
+      if (nom) foodNames[id] = nom;
+
+      const quantite = Number(line.quantity);
+      const unite = String(line.unit?.name ?? line.unit?.abbreviation ?? "").trim();
+      if (Number.isFinite(quantite) && quantite > 0) {
+        const deja = besoins[id];
+        if (!deja) besoins[id] = { quantity: quantite, unit: unite };
+        else if (deja.unit === unite) deja.quantity += quantite;
+      }
     } else {
       freeText += 1;
     }
   }
   return {
     foodNames,
+    besoins,
     id: recipe.id,
     slug: recipe.slug,
     name: recipe.name,
@@ -250,7 +267,8 @@ async function lireCarnet() {
     for (const id of recipe.foodIds) counts.set(id, (counts.get(id) ?? 0) + 1);
     for (const [id, nom] of Object.entries(recipe.foodNames ?? {})) names.set(id, nom);
     // Les noms ont fait leur office : les garder dans chaque recette alourdirait
-    // l'index d'autant de copies qu'il y a d'emplois.
+    // l'index d'autant de copies qu'il y a d'emplois. Les quantités, elles, sont
+    // propres à chaque recette et y restent.
     delete recipe.foodNames;
   }
 

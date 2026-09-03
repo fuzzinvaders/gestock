@@ -128,7 +128,8 @@ export function ReserveVue() {
                       >
                         {product?.name ?? 'Produit inconnu'}
                         <span className="ml-1 text-slate-500">
-                          ×{lot.quantity}
+                          {lot.quantity}
+                          {lot.unit || product?.unit ? ` ${lot.unit || product?.unit}` : ''}
                         </span>
                       </button>
                     </li>

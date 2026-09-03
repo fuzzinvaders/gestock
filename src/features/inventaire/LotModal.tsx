@@ -57,7 +57,7 @@ export function LotModal({ lot, onClose }: { lot: Lot; onClose: () => void }) {
       <Modal title="Modifier le rangement" onClose={onClose}>
         <LotForm
           product={product}
-          initial={lotToDraft(lot)}
+          initial={lotToDraft(lot, product)}
           submitLabel="Enregistrer"
           onCancel={() => setMode('vue')}
           onSubmit={async (draft) => {
@@ -102,7 +102,7 @@ export function LotModal({ lot, onClose }: { lot: Lot; onClose: () => void }) {
         <dl className="grid grid-cols-2 gap-y-2 text-sm">
           <dt className="text-slate-500">Reste</dt>
           <dd className="text-right text-slate-100">
-            {lot.quantity} {product.unit}
+            {lot.quantity} {lot.unit || product.unit}
           </dd>
           <dt className="text-slate-500">Où</dt>
           <dd className="text-right text-slate-100">

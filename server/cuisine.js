@@ -12,6 +12,8 @@
  * déclaré qu'il est toujours là — le sel et l'huile d'olive ne s'inventorient pas.
  */
 
+import { comparer } from "./unites.js";
+
 const URGENT_DAYS = 3;
 const SOON_DAYS = 30;
 const MS_PER_DAY = 86400000;
@@ -127,7 +129,8 @@ const SAUVETAGE_JOURS = 7;
  * liste : c'est l'interface qui trie et filtre, pas ce calcul.
  *
  * Quatre états par ingrédient, et la distinction entre les deux derniers compte :
- *   stock    — relié à un produit dont il reste un lot, ici, avec sa date
+ *   stock    — relié à un produit dont il reste un lot, ici, avec sa date et,
+ *               quand les unités se traduisent, de quoi dire s'il y en a assez
  *   toujours — le sel, l'huile : on l'a sans le compter
  *   manque   — relié à un produit, mais plus rien en réserve : à racheter
  *   inconnu  — jamais relié : on n'en sait rien, ce qui n'est pas « on ne l'a pas »
@@ -150,7 +153,9 @@ function croiserRecettes({ index, links, products, lots, places = [], today }) {
       continue;
     }
 
+    const besoins = recipe.besoins ?? {};
     const ingredients = recipe.foodIds.map((foodId) => {
+      const besoin = besoins[foodId] ?? null;
       // Le repli ne devrait plus servir : l'index tire les noms des recettes
       // elles-mêmes. S'il sort quand même, il donne de quoi retrouver l'aliment
       // dans Mealie plutôt qu'un « inconnu » sur lequel on ne peut rien faire.
@@ -158,18 +163,36 @@ function croiserRecettes({ index, links, products, lots, places = [], today }) {
 
       const trouve = stock.get(foodId);
       if (!trouve) {
-        return { foodId, name: nom, status: relies.has(foodId) ? "manque" : "inconnu" };
+        return {
+          foodId,
+          name: nom,
+          besoin,
+          status: relies.has(foodId) ? "manque" : "inconnu",
+        };
       }
-      if (trouve.always) return { foodId, name: nom, status: "toujours" };
+      if (trouve.always) return { foodId, name: nom, besoin, status: "toujours" };
+
+      /* Le verdict n'est rendu que si les deux unités appartiennent à la même
+         famille. Une cuillère à soupe d'huile face à un litre reste sans réponse :
+         on affiche les deux quantités et on laisse juger. Mieux vaut un blanc
+         qu'un « il vous en manque » inventé. */
+      const unitLot = trouve.lot.unit ?? trouve.product.unit ?? "";
+      const verdict = besoin
+        ? comparer(besoin, { quantity: trouve.lot.quantity, unit: unitLot })
+        : { comparable: false };
+
       return {
         foodId,
         name: nom,
+        besoin,
+        assez: verdict.comparable ? verdict.assez : null,
+        manque: verdict.comparable && !verdict.assez ? verdict.manque : null,
         status: "stock",
         productId: trouve.product.id,
         productName: trouve.product.name,
         placeName: nomsLieux.get(trouve.lot.placeId) ?? null,
         quantity: trouve.lot.quantity,
-        unit: trouve.product.unit ?? "",
+        unit: unitLot,
         lotId: trouve.lot.id,
         expiresAt: trouve.lot.expiresAt,
         level: trouve.level,

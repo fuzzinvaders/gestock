@@ -3,12 +3,13 @@ import { Button } from '../../components/ui/Button'
 import { ErrorText, Field, Input, Select } from '../../components/ui/Field'
 import { useInventaire } from '../../hooks/useInventaire'
 import { addDays, todayIso } from '../../lib/dates'
-import type { Lot, Product } from '../../lib/types'
+import { UNITS, type Lot, type Product } from '../../lib/types'
 
 export interface LotDraft {
   placeId: string
   sectionId: string | null
   quantity: number
+  unit: string
   storedAt: string
   expiresAt: string | null
   note: string
@@ -34,6 +35,9 @@ export function emptyLot(
     placeId,
     sectionId,
     quantity: 1,
+    // L'unité du produit n'est qu'un point de départ : ce qui compte est ce qui
+    // est écrit sur l'emballage qu'on tient.
+    unit: product.unit,
     storedAt,
     // La durée de conservation de la fiche produit devient une date concrète : on
     // corrige une date proposée bien plus volontiers qu'on ne remplit un champ vide.
@@ -42,11 +46,12 @@ export function emptyLot(
   }
 }
 
-export function lotToDraft(lot: Lot): LotDraft {
+export function lotToDraft(lot: Lot, product?: Product): LotDraft {
   return {
     placeId: lot.placeId,
     sectionId: lot.sectionId,
     quantity: lot.quantity,
+    unit: lot.unit || product?.unit || 'pièce',
     storedAt: lot.storedAt,
     expiresAt: lot.expiresAt,
     note: lot.note,
@@ -126,7 +131,7 @@ export function LotForm({
         </Field>
       </div>
 
-      <Field label={`Quantité (${product.unit})`}>
+      <Field label="Quantité">
         <div className="flex items-center gap-2">
           <Button
             type="button"
@@ -154,6 +159,20 @@ export function LotForm({
           >
             +
           </Button>
+          {/* L'unité se choisit ici, lot par lot : « 4 pièces » un jour, « 600 g »
+              le lendemain pour le même produit, selon ce qu'on a acheté. */}
+          <Select
+            value={draft.unit}
+            onChange={(e) => set('unit', e.target.value)}
+            className="w-28 shrink-0"
+            aria-label="Unité"
+          >
+            {UNITS.map((unit) => (
+              <option key={unit} value={unit}>
+                {unit}
+              </option>
+            ))}
+          </Select>
         </div>
       </Field>
 

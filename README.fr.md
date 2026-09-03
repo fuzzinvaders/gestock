@@ -124,11 +124,18 @@ Un ingrédient absent se dit de deux façons, et la nuance compte : **à acheter
 relié à un produit dont il ne reste plus rien, **non relié** quand on n'en sait simplement rien.
 Le second se corrige dans Correspondances, pas au magasin.
 
-Deux limites assumées :
+Les quantités sont confrontées quand c'est possible. Chaque lot porte **sa propre unité** — le
+même poulet se range une fois en 4 pièces, une fois en 600 g, selon l'emballage — et la recette
+apporte la sienne. Trois familles se traduisent entre elles : masse (g, kg), volume (mL, cl, L) et
+dénombrement (pièces). Dans ces cas, la fiche dit « assez » ou « il en manque 250 g », et la liste
+de courses emporte le complément.
 
-- La question posée est « as-tu cet ingrédient », pas « en as-tu assez ». Convertir 200 g de
-  tomates en « une boîte » n'est pas soluble dans le cas général, et une réponse fausse sur les
-  quantités serait pire que pas de réponse du tout.
+Une limite assumée :
+
+- Hors de ces familles, aucune réponse n'est donnée. Deux cuillères à soupe d'huile ne se
+  convertissent pas en millilitres sans savoir de quelle huile il s'agit ; la ligne affiche alors
+  les deux quantités et « quantité non comparable — à vérifier vous-même ». Un verdict inventé
+  enverrait faire des courses inutiles, ce que l'application cherche précisément à éviter.
 - Une recette dont **aucun** ingrédient n'est structuré dans Mealie (tout en texte libre) est
   écartée et comptée à part : elle ressortirait « il ne manque rien » alors qu'on ne sait rien
   d'elle. Les recettes partiellement structurées sont proposées, avec le nombre de lignes non
