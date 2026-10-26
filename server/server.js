@@ -20,7 +20,7 @@
  * Santé      : GET /healthz — jamais protégé (utilisé par le HEALTHCHECK Docker)
  *
  * Environnement : PORT, HOST, DATA_DIR, AUTH_SECRET, ORIGIN, OFF_BASE_URL, OFF_USER_AGENT,
- *                 MEALIE_URL, MEALIE_TOKEN
+ *                 MEALIE_URL, MEALIE_PUBLIC_URL, MEALIE_TOKEN
  */
 
 import http from "node:http";
@@ -422,7 +422,8 @@ async function handleApi(req, res, pathname) {
       const { index, stale, lastError } = mealie.getIndex();
       return sendJson(res, 200, {
         configured: mealie.isConfigured(),
-        url: mealie.BASE_URL,
+        url: mealie.PUBLIC_URL,
+        apiUrl: mealie.BASE_URL,
         token: mealie.tokenHint(),
         lastError,
         stale,

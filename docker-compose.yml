@@ -33,6 +33,7 @@ services:
       # Carnet de recettes Mealie (optionnel) : sans ces deux valeurs, l'onglet
       # Recettes n'apparaît pas et le reste fonctionne à l'identique.
       MEALIE_URL: ${MEALIE_URL:-}
+      MEALIE_PUBLIC_URL: ${MEALIE_PUBLIC_URL:-}
       MEALIE_TOKEN: ${MEALIE_TOKEN:-}
     volumes:
       # Persiste les comptes et l'inventaire (réserves, produits, lots).

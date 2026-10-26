@@ -83,6 +83,15 @@ function Carnet() {
       <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
         <dt className="text-slate-500">Adresse</dt>
         <dd className="truncate text-right text-slate-300">{mealie.url || '—'}</dd>
+        {mealie.apiUrl && mealie.apiUrl !== mealie.url ? (
+          <>
+            {/* Affichée seulement quand elle diffère : c'est par elle que passent
+                les appels du serveur, et c'est elle qu'il faut vérifier quand
+                Mealie ne répond pas alors que son site s'ouvre. */}
+            <dt className="text-slate-500">Appelée en</dt>
+            <dd className="truncate text-right text-slate-300">{mealie.apiUrl}</dd>
+          </>
+        ) : null}
         <dt className="text-slate-500">Jeton reçu</dt>
         <dd className="text-right text-slate-300">
           {mealie.token

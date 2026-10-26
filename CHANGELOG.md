@@ -17,6 +17,10 @@ yet, so entries are grouped by the change that shipped them.
   Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
   state for what is never inventoried. Recipes whose ingredients are entirely free text are set
   aside and counted rather than reported as complete.
+- **`MEALIE_PUBLIC_URL`**, to call Mealie on an internal address (`http://mealie:9000`) while
+  recipe links and pictures keep the public one. A reverse-proxy rule was refusing
+  `/api/households` to Gestock while letting `/api/recipes` and the browser through; two
+  containers on the same host have no reason to talk through the internet anyway.
 - **Shopping lists, read through the pantry.** Mealie adds recipes up into a shopping list but
   cannot see the freezer. Gestock reads the list live and gives each line one verdict — to buy
   (grouped by Mealie's aisle label), partial (with the shortfall), to check (stock in an

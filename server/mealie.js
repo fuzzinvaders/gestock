@@ -31,6 +31,18 @@ const BASE_URL = String(process.env.MEALIE_URL || "")
   .trim()
   .replace(/\/+$/, "");
 const TOKEN = String(process.env.MEALIE_TOKEN || "").trim();
+/* L'adresse que le navigateur ouvre, distincte de celle que le serveur appelle.
+   Quand Gestock et Mealie tournent sur la même machine, le serveur gagne à
+   joindre Mealie en direct — http://mealie:9000 sur un réseau Docker commun —
+   sans repasser par Internet, le proxy inverse et ses règles : c'est l'une
+   d'elles qui refusait /api/households à Gestock tout en laissant passer
+   /api/recipes. Mais les liens et les images des recettes s'ouvrent dans le
+   téléphone, qui ne connaît que l'adresse publique. Sans MEALIE_PUBLIC_URL,
+   la même adresse sert aux deux, comme avant. */
+const PUBLIC_URL =
+  String(process.env.MEALIE_PUBLIC_URL || "")
+    .trim()
+    .replace(/\/+$/, "") || BASE_URL;
 const INDEX_FILE = path.join(DATA_DIR, "mealie.json");
 
 const TIMEOUT_MS = 10000;
@@ -204,8 +216,8 @@ function summarise(recipe, groupSlug) {
     id: recipe.id,
     slug: recipe.slug,
     name: recipe.name,
-    url: `${BASE_URL}/g/${groupSlug}/r/${recipe.slug}`,
-    image: `${BASE_URL}/api/media/recipes/${recipe.id}/images/min-original.webp`,
+    url: `${PUBLIC_URL}/g/${groupSlug}/r/${recipe.slug}`,
+    image: `${PUBLIC_URL}/api/media/recipes/${recipe.id}/images/min-original.webp`,
     totalTime: recipe.totalTime ?? null,
     servings: recipe.recipeServings ?? null,
     foodIds,
@@ -394,6 +406,7 @@ async function listeDeCourses(id) {
 
 export {
   BASE_URL,
+  PUBLIC_URL,
   getIndex,
   isConfigured,
   listeDeCourses,

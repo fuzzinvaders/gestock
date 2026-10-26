@@ -129,7 +129,10 @@ export interface RecipeCross {
 
 export interface MealieStatus {
   configured: boolean
+  /** L'adresse que le navigateur ouvre (liens et images des recettes). */
   url: string
+  /** L'adresse que le serveur appelle — la même, ou une adresse interne. */
+  apiUrl: string
   /** Aperçu du jeton reçu par le serveur : assez pour le reconnaître, pas pour l'employer. */
   token: { length: number; apercu: string; jwt: boolean } | null
   lastError: string | null

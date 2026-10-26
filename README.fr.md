@@ -93,6 +93,12 @@ opérations d'inventaire.
 Renseigne `MEALIE_URL` et `MEALIE_TOKEN` (un jeton longue durée créé dans ton profil Mealie) et
 un onglet **Recettes** apparaît. Sans ces variables, rien ne change : l'onglet n'existe pas.
 
+Si Mealie tourne sur la même machine que Gestock, fais-le appeler **en direct** :
+`MEALIE_URL=http://mealie:9000` (le nom du conteneur, sur un réseau Docker commun) et
+`MEALIE_PUBLIC_URL=https://recettes.exemple.fr` pour les liens et les images que le navigateur
+ouvre. Les appels du serveur ne repassent plus par Internet ni par le proxy inverse — dont une
+règle peut refuser à Gestock un chemin qu'elle laisse au navigateur.
+
 La page **Compte** montre ce que le serveur reçoit réellement : l'adresse, un aperçu du jeton
 (ses premiers et derniers caractères, assez pour le reconnaître sans le divulguer), la date de la
 dernière lecture et la dernière erreur. C'est là qu'on tranche la question « ma variable

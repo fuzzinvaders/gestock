@@ -88,6 +88,11 @@ expiry levels, server-side validation and the inventory operations.
 Set `MEALIE_URL` and `MEALIE_TOKEN` (a long-lived token created in your Mealie profile) and a
 **Recettes** tab appears. Without them nothing changes: the tab does not exist.
 
+If Mealie runs on the same machine, let Gestock call it **directly**: `MEALIE_URL=http://mealie:9000`
+(the container name, on a shared Docker network) and `MEALIE_PUBLIC_URL=https://recipes.example.org`
+for the links and pictures the browser opens. Server calls then no longer go through the internet
+and the reverse proxy, one of whose rules may deny Gestock a path it lets the browser through.
+
 Gestock reads Mealie only to build an *index* — for each recipe, the ids of its ingredients. The
 index is rebuilt once a day in the background, or on demand; in between, answering "what can we
 cook" needs no network at all and survives a Mealie outage. Gestock never writes to Mealie: a
