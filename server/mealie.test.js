@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resumerListe, summarise } from "./mealie.js";
+import { resumerListe, resumerRefus, summarise } from "./mealie.js";
 
 /* Une recette telle que Mealie la rend, réduite à ce qui nous occupe. Les
    identifiants et les noms sont ceux d'un vrai carnet : c'est la forme exacte
@@ -117,5 +117,30 @@ describe("resumerListe", () => {
 
   it("se souvient des recettes dont la liste est née", () => {
     expect(liste.recettes).toEqual(["Salade de pois chiches"]);
+  });
+});
+
+describe("resumerRefus", () => {
+  it("rend le motif d'un refus de Mealie, qui parle JSON", () => {
+    expect(resumerRefus('{"detail":"Not authenticated"}')).toBe("Not authenticated");
+  });
+
+  it("désigne un intermédiaire quand la réponse est une page HTML", () => {
+    // La page reçue réellement devant /api/households/shopping/lists : son style
+    // se retrouvait au milieu du message, et rien ne disait qu'elle n'était pas
+    // de Mealie.
+    const page = `<!DOCTYPE html><html><head><title>Oups ! Accès refusé</title>
+      <style>body { background-color: #121212; color: #E0E0E0; font-family: 'Nunito'; }</style>
+      </head><body><div class="container"><h1>Oups ! Accès refusé</h1></div></body></html>`;
+    const motif = resumerRefus(page);
+    expect(motif).toContain("Oups ! Accès refusé");
+    expect(motif).toContain("intermédiaire");
+    expect(motif).not.toContain("background-color");
+  });
+
+  it("se rabat sur le premier intertitre quand la page n'a pas de titre", () => {
+    expect(resumerRefus("<html><body><h1>Forbidden</h1><p>nope</p></body></html>")).toContain(
+      "« Forbidden »",
+    );
   });
 });

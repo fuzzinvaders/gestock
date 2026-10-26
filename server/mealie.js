@@ -69,6 +69,35 @@ function tokenHint() {
   return { length: TOKEN.length, apercu: `${TOKEN.slice(0, 6)}…${TOKEN.slice(-4)}`, jwt };
 }
 
+/**
+ * Le motif d'un refus, en une ligne lisible.
+ *
+ * Mealie répond en JSON (« detail »). Une page HTML, elle, vient presque toujours
+ * d'autre chose : un proxy inverse, sa page d'erreur personnalisée, un pare-feu
+ * applicatif. Le dire change tout le diagnostic — on cesse de chercher du côté
+ * du jeton ou des droits Mealie. La page est résumée par son titre ou son premier
+ * intertitre ; son style et ses scripts sont écartés, sans quoi la feuille de
+ * style finissait au milieu du message.
+ */
+function resumerRefus(brut) {
+  const texte = String(brut ?? "").trim();
+  if (texte.startsWith("{")) {
+    const json = JSON.parse(texte);
+    const motif = json?.detail ?? json?.message ?? texte;
+    return String(typeof motif === "string" ? motif : JSON.stringify(motif)).slice(0, 160);
+  }
+  if (/<html|<!doctype|<body|<head|<title/i.test(texte)) {
+    const propre = texte.replace(/<(style|script)[\s\S]*?<\/\1>/gi, " ");
+    const enTete =
+      propre.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ??
+      propre.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i)?.[1] ??
+      propre;
+    const resume = enTete.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 100);
+    return `page HTML « ${resume} » — réponse d'un intermédiaire devant Mealie, pas de Mealie`;
+  }
+  return texte.replace(/\s+/g, " ").slice(0, 160);
+}
+
 async function call(pathname, params = {}) {
   const url = new URL(`${BASE_URL}${pathname}`);
   for (const [key, value] of Object.entries(params)) {
@@ -87,16 +116,7 @@ async function call(pathname, params = {}) {
        la nature du refus, pas de quoi noyer l'écran. */
     let detail = "";
     try {
-      const brut = (await res.text()).trim();
-      const json = brut.startsWith("{") ? JSON.parse(brut) : null;
-      const texte = json?.detail ?? json?.message ?? brut;
-      detail = String(typeof texte === "string" ? texte : JSON.stringify(texte))
-        // Une page d'erreur HTML — celle d'un proxy ou d'un pare-feu — se lit mieux
-        // débarrassée de ses balises et de ses retours à la ligne.
-        .replace(/<[^>]*>/g, " ")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 160);
+      detail = resumerRefus(await res.text());
     } catch {
       // Un corps illisible ne doit pas masquer le code, qui reste l'essentiel.
     }
@@ -380,6 +400,7 @@ export {
   listesDeCourses,
   refreshIndex,
   resumerListe,
+  resumerRefus,
   searchFoods,
   summarise,
   tokenHint,
