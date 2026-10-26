@@ -142,6 +142,23 @@ Une limite assumée :
   d'elle. Les recettes partiellement structurées sont proposées, avec le nombre de lignes non
   vérifiées.
 
+### Listes de courses
+
+Mealie sait déjà additionner plusieurs recettes en une liste de courses ; il ne sait pas ce qui
+dort au congélateur. **Recettes → Courses** relit cette liste et classe chaque ligne :
+
+- **à acheter**, par rayon (celui que Mealie attribue à la ligne) — y compris ce dont on n'a
+  qu'une partie, avec le complément chiffré : « vous en avez 750 g — il en manque 4,25 kg » ;
+- **à vérifier** quand on en a, mais en quantités qui ne se comparent pas (des kilos face à des
+  pièces) ;
+- **déjà au placard — inutile de racheter**, avec la réserve et la quantité ;
+- les lignes déjà **cochées** dans Mealie, repliées.
+
+La liste est lue en direct à chaque affichage, et relue au retour au premier plan : elle se
+coche au magasin pendant qu'on la regarde ailleurs. Rien n'est écrit dans Mealie — elle reste la
+sienne, et le jeton en lecture suffit toujours. Un bouton copie ce qu'il reste à acheter, rangé
+par rayon.
+
 ## Sauvegarder
 
 Le volume Docker survit à `docker compose down`, mais **pas à la perte de la machine**. La

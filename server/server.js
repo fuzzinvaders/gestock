@@ -15,7 +15,8 @@
  *              /api/products(/:id), /api/lots(/:id), POST /api/lots/:id/consume
  * Codes-barres : GET /api/lookup?ean=…
  * Recettes   : GET /api/mealie, POST /api/mealie/refresh, GET /api/mealie/recettes,
- *              GET /api/mealie/aliments, PUT/DELETE /api/mealie/links/:foodId
+ *              GET /api/mealie/aliments, PUT/DELETE /api/mealie/links/:foodId,
+ *              GET /api/mealie/listes, GET /api/mealie/listes/:id
  * Santé      : GET /healthz — jamais protégé (utilisé par le HEALTHCHECK Docker)
  *
  * Environnement : PORT, HOST, DATA_DIR, AUTH_SECRET, ORIGIN, OFF_BASE_URL, OFF_USER_AGENT,
@@ -41,7 +42,7 @@ import {
 } from "./inventaire.js";
 import { lookup } from "./openfoodfacts.js";
 import * as mealie from "./mealie.js";
-import { alimentsARelier, croiserRecettes } from "./cuisine.js";
+import { alimentsARelier, croiserListe, croiserRecettes } from "./cuisine.js";
 import { validateBody, validateEan, validateId, validateStoredAt } from "./validate.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -510,6 +511,39 @@ async function handleApi(req, res, pathname) {
       return sendJson(res, 200, {
         foods: alimentsARelier({ index, links: inventory.links, products: inventory.products }),
       });
+    }
+
+    if (pathname === "/api/mealie/listes" && req.method === "GET") {
+      try {
+        return sendJson(res, 200, { listes: await mealie.listesDeCourses() });
+      } catch (err) {
+        return sendJson(res, 502, { error: String(err?.message ?? err) });
+      }
+    }
+
+    const listeParts = segments(pathname); // ["api", "mealie", "listes", id]
+    if (listeParts[2] === "listes" && listeParts[3] && req.method === "GET") {
+      const id = validateId(listeParts[3], "L'identifiant de la liste");
+      if (!id.ok) return sendJson(res, 400, { error: id.error });
+      let liste;
+      try {
+        liste = await mealie.listeDeCourses(id.value);
+      } catch (err) {
+        // Une liste supprimée dans Mealie entre deux affichages finit ici : le
+        // message de Mealie dit lequel des deux, introuvable ou refusé.
+        return sendJson(res, 502, { error: String(err?.message ?? err) });
+      }
+      const today = validateStoredAt(query.get("today"));
+      const inventory = store.readInventory();
+      const items = croiserListe({
+        items: liste.items,
+        links: inventory.links,
+        products: inventory.products,
+        lots: inventory.lots,
+        places: inventory.places,
+        today: today.ok ? today.value : new Date().toISOString().slice(0, 10),
+      });
+      return sendJson(res, 200, { ...liste, items });
     }
 
     const linkParts = segments(pathname); // ["api", "mealie", "links", foodId]

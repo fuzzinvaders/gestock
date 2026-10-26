@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alimentsARelier, croiserRecettes, normaliser, proposerProduit } from "./cuisine.js";
+import { alimentsARelier, croiserListe, croiserRecettes, normaliser, proposerProduit } from "./cuisine.js";
 
 const AUJOURDHUI = "2026-09-02";
 
@@ -277,5 +277,59 @@ describe("alimentsARelier", () => {
   it("ne repropose pas ce qui est déjà relié", () => {
     const attente = alimentsARelier({ index, links, products: produits });
     expect(attente.some((f) => f.foodId === "f-sel")).toBe(false);
+  });
+});
+
+describe("croiserListe", () => {
+  function item(extra) {
+    return { id: "i", foodId: null, name: "", quantity: 1, unit: "", note: "", display: "", checked: false, label: null, position: 0, ...extra };
+  }
+
+  function croiserUne(ligne, lots = []) {
+    return croiserListe({ items: [ligne], links, products: produits, lots, places: lieux, today: AUJOURDHUI })[0];
+  }
+
+  it("dit « couvert » quand le placard suffit", () => {
+    const r = croiserUne(
+      item({ foodId: "f-pois", name: "petits pois", quantity: 500, unit: "grammes" }),
+      [{ ...lot("l1", "p-pois", "2027-01-01"), quantity: 750, unit: "g" }],
+    );
+    expect(r.verdict).toBe("couvert");
+    expect(r.placeName).toBe("Congélateur");
+  });
+
+  it("dit « partiel » et chiffre le complément", () => {
+    const r = croiserUne(
+      item({ foodId: "f-pois", name: "petits pois", quantity: 1, unit: "kg" }),
+      [{ ...lot("l1", "p-pois", "2027-01-01"), quantity: 750, unit: "g" }],
+    );
+    expect(r.verdict).toBe("partiel");
+    expect(r.manque).toBe(0.25);
+  });
+
+  it("dit « à vérifier » quand les unités ne se comparent pas", () => {
+    const r = croiserUne(
+      item({ foodId: "f-pois", name: "petits pois", quantity: 2, unit: "cuillère à soupe" }),
+      [{ ...lot("l1", "p-pois", "2027-01-01"), quantity: 750, unit: "g" }],
+    );
+    expect(r.verdict).toBe("a-verifier");
+  });
+
+  it("compte le fond de placard comme couvert", () => {
+    expect(croiserUne(item({ foodId: "f-sel", name: "Sel, poivre" })).verdict).toBe("couvert");
+  });
+
+  it("fait acheter ce qui manque, ce qui n'est pas relié, et le texte libre", () => {
+    expect(croiserUne(item({ foodId: "f-pois", name: "petits pois" })).verdict).toBe("acheter");
+    expect(croiserUne(item({ foodId: "f-safran", name: "safran" })).status).toBe("inconnu");
+    const libre = croiserUne(item({ note: "papier toilette", display: "papier toilette" }));
+    expect(libre.status).toBe("libre");
+    expect(libre.name).toBe("papier toilette");
+    expect(libre.verdict).toBe("acheter");
+  });
+
+  it("respecte ce qui est déjà coché dans Mealie, même si le placard est vide", () => {
+    // Quelqu'un l'a mis dans le caddie : la liste ne doit pas le réclamer à nouveau.
+    expect(croiserUne(item({ foodId: "f-pois", name: "petits pois", checked: true })).verdict).toBe("achete");
   });
 });

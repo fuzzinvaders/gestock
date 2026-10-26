@@ -115,6 +115,16 @@ answer on quantities would be worse than none); and a recipe whose ingredients a
 free text in Mealie is set aside and counted separately, since it would otherwise come out as
 "nothing missing" when nothing at all is known about it.
 
+### Shopping lists
+
+Mealie already adds several recipes up into one shopping list; it does not know what is in the
+freezer. **Recettes → Courses** reads that list and sorts every line into: still to buy, by aisle
+(including partial stock, with the shortfall: "you have 750 g — 4.25 kg missing"); to check, when
+some is in stock but the amounts do not compare (kilos against pieces); already in the pantry, with
+where and how much; and lines already ticked in Mealie, folded away. The list is read live and
+re-read when the phone comes back to the foreground. Nothing is written to Mealie: a read-only
+token is still enough.
+
 ## Backing up
 
 The Docker volume survives `docker compose down`, but **not the loss of the machine**. The

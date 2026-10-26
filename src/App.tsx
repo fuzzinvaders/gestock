@@ -8,6 +8,7 @@ import { ComptePage } from './features/compte/ComptePage'
 import { InventairePage } from './features/inventaire/InventairePage'
 import { ReservesPage } from './features/lieux/ReservesPage'
 import { ReserveVue } from './features/lieux/ReserveVue'
+import { CoursesPage } from './features/recettes/CoursesPage'
 import { LiensPage } from './features/recettes/LiensPage'
 import { RecettesPage } from './features/recettes/RecettesPage'
 import { AuthProvider, useAuth } from './hooks/useAuth'
@@ -52,6 +53,7 @@ function AppRoutes() {
           <Route path="/reserves/:placeId" element={<ReserveVue />} />
           <Route path="/recettes" element={<RecettesPage />} />
           <Route path="/recettes/liens" element={<LiensPage />} />
+          <Route path="/recettes/courses" element={<CoursesPage />} />
           <Route path="/compte" element={<ComptePage />} />
           <Route path="*" element={<Navigate to="/inventaire" replace />} />
         </Routes>

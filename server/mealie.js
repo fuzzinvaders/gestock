@@ -319,4 +319,68 @@ async function searchFoods(query) {
   return (payload.items ?? []).map((f) => ({ id: f.id, name: f.name }));
 }
 
-export { BASE_URL, getIndex, isConfigured, refreshIndex, searchFoods, summarise, tokenHint };
+// ---- Listes de courses ----
+
+/* Les listes se lisent en direct, sans passer par l'index : elles changent
+   pendant qu'on les remplit — une recette ajoutée, une ligne cochée au magasin —
+   et une copie d'hier y serait fausse. Une requête par affichage suffit. */
+
+/** Les listes du foyer, la plus récemment modifiée d'abord. */
+async function listesDeCourses() {
+  if (!isConfigured()) return [];
+  const payload = await call("/api/households/shopping/lists", {
+    perPage: 50,
+    orderBy: "updatedAt",
+    orderDirection: "desc",
+  });
+  return (payload.items ?? []).map((l) => ({
+    id: l.id,
+    name: l.name || "Liste sans nom",
+    updatedAt: l.updatedAt ?? null,
+  }));
+}
+
+/** Une liste, réduite à ce qu'il faut pour la confronter aux placards. */
+function resumerListe(liste) {
+  return {
+    id: liste.id,
+    name: liste.name || "Liste sans nom",
+    updatedAt: liste.updatedAt ?? null,
+    // De quelles recettes la liste est née : utile pour se souvenir pourquoi on
+    // achète trois aubergines.
+    recettes: (liste.recipeReferences ?? [])
+      .map((r) => r.recipe?.name)
+      .filter(Boolean),
+    items: (liste.listItems ?? []).map((it) => ({
+      id: it.id,
+      foodId: it.foodId ?? it.food?.id ?? null,
+      name: String(it.food?.name ?? "").trim(),
+      quantity: Number(it.quantity),
+      unit: String(it.unit?.name ?? it.unit?.abbreviation ?? "").trim(),
+      note: String(it.note ?? "").trim(),
+      display: String(it.display ?? "").trim(),
+      checked: Boolean(it.checked),
+      // Le rayon que Mealie attribue à la ligne : c'est lui qui ordonne une liste
+      // qu'on parcourt en marchant dans un magasin.
+      label: it.label?.name ?? null,
+      position: Number.isFinite(it.position) ? it.position : 0,
+    })),
+  };
+}
+
+async function listeDeCourses(id) {
+  return resumerListe(await call(`/api/households/shopping/lists/${encodeURIComponent(id)}`));
+}
+
+export {
+  BASE_URL,
+  getIndex,
+  isConfigured,
+  listeDeCourses,
+  listesDeCourses,
+  refreshIndex,
+  resumerListe,
+  searchFoods,
+  summarise,
+  tokenHint,
+};

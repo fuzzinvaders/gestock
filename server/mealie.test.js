@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { summarise } from "./mealie.js";
+import { resumerListe, summarise } from "./mealie.js";
 
 /* Une recette telle que Mealie la rend, réduite à ce qui nous occupe. Les
    identifiants et les noms sont ceux d'un vrai carnet : c'est la forme exacte
@@ -63,5 +63,59 @@ describe("summarise", () => {
     );
     expect(bancal.foodIds).toEqual(["abc"]);
     expect(bancal.foodNames).toEqual({});
+  });
+});
+
+describe("resumerListe", () => {
+  // Une liste telle que Mealie la renvoie, champs inutiles compris.
+  const brute = {
+    id: "l1",
+    name: "Courses de la semaine",
+    updatedAt: "2026-10-25T18:00:00Z",
+    recipeReferences: [{ recipeId: "r1", recipe: { name: "Salade de pois chiches" } }],
+    listItems: [
+      {
+        id: "a",
+        quantity: 265,
+        unit: { name: "gramme", abbreviation: "g" },
+        food: { id: "f-pois-chiche", name: "pois chiches" },
+        foodId: "f-pois-chiche",
+        note: "",
+        display: "265 grammes pois chiches",
+        checked: false,
+        position: 0,
+        label: { name: "Épicerie" },
+        groupId: "g",
+        householdId: "h",
+      },
+      { id: "b", quantity: 1, note: "papier toilette", display: "papier toilette", checked: true, position: 1 },
+    ],
+  };
+
+  const liste = resumerListe(brute);
+
+  it("garde ce qu'il faut pour confronter la liste aux placards", () => {
+    expect(liste.items[0]).toEqual({
+      id: "a",
+      foodId: "f-pois-chiche",
+      name: "pois chiches",
+      quantity: 265,
+      unit: "gramme",
+      note: "",
+      display: "265 grammes pois chiches",
+      checked: false,
+      label: "Épicerie",
+      position: 0,
+    });
+  });
+
+  it("laisse une ligne en texte libre sans aliment", () => {
+    expect(liste.items[1].foodId).toBe(null);
+    expect(liste.items[1].note).toBe("papier toilette");
+    expect(liste.items[1].checked).toBe(true);
+  });
+
+  it("se souvient des recettes dont la liste est née", () => {
+    expect(liste.recettes).toEqual(["Salade de pois chiches"]);
   });
 });

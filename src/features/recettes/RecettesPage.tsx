@@ -110,12 +110,20 @@ export function RecettesPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-semibold text-slate-100">Recettes</h1>
-        <Link
-          to="/recettes/liens"
-          className="rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-        >
-          Correspondances
-        </Link>
+        <div className="flex gap-1">
+          <Link
+            to="/recettes/courses"
+            className="rounded-lg px-3 py-2 text-sm text-emerald-400 hover:bg-slate-800 hover:text-emerald-300"
+          >
+            Courses
+          </Link>
+          <Link
+            to="/recettes/liens"
+            className="rounded-lg px-3 py-2 text-sm text-slate-400 hover:bg-slate-800 hover:text-slate-200"
+          >
+            Correspondances
+          </Link>
+        </div>
       </div>
 
       <ErrorText>{error}</ErrorText>

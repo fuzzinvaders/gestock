@@ -121,6 +121,48 @@ function stockParAliment(links, products, lots, today) {
 const SAUVETAGE_JOURS = 7;
 
 /**
+ * Ce qu'on a d'un aliment Mealie, face à une quantité demandée.
+ *
+ * Partagé entre la fiche d'une recette et la liste de courses : les deux posent
+ * la même question — « cet ingrédient, l'ai-je, et assez ? » — et doivent y
+ * répondre de la même façon, sans quoi une recette dirait « vous l'avez » pendant
+ * que la liste demanderait de l'acheter.
+ */
+function annoterAliment(foodId, nom, besoin, { stock, relies, nomsLieux }) {
+  const trouve = stock.get(foodId);
+  if (!trouve) {
+    return { foodId, name: nom, besoin, status: relies.has(foodId) ? "manque" : "inconnu" };
+  }
+  if (trouve.always) return { foodId, name: nom, besoin, status: "toujours" };
+
+  /* Le verdict n'est rendu que si les deux unités appartiennent à la même
+     famille. Une cuillère à soupe d'huile face à un litre reste sans réponse :
+     on affiche les deux quantités et on laisse juger. Mieux vaut un blanc
+     qu'un « il vous en manque » inventé. */
+  const unitLot = trouve.lot.unit ?? trouve.product.unit ?? "";
+  const verdict = besoin
+    ? comparer(besoin, { quantity: trouve.lot.quantity, unit: unitLot })
+    : { comparable: false };
+
+  return {
+    foodId,
+    name: nom,
+    besoin,
+    assez: verdict.comparable ? verdict.assez : null,
+    manque: verdict.comparable && !verdict.assez ? verdict.manque : null,
+    status: "stock",
+    productId: trouve.product.id,
+    productName: trouve.product.name,
+    placeName: nomsLieux.get(trouve.lot.placeId) ?? null,
+    quantity: trouve.lot.quantity,
+    unit: unitLot,
+    lotId: trouve.lot.id,
+    expiresAt: trouve.lot.expiresAt,
+    level: trouve.level,
+  };
+}
+
+/**
  * Chaque recette du carnet, ingrédient par ingrédient, avec ce qu'on en a.
  *
  * La question à laquelle ça répond est « pour cette recette, qu'est-ce que j'ai
@@ -154,50 +196,17 @@ function croiserRecettes({ index, links, products, lots, places = [], today }) {
     }
 
     const besoins = recipe.besoins ?? {};
-    const ingredients = recipe.foodIds.map((foodId) => {
-      const besoin = besoins[foodId] ?? null;
-      // Le repli ne devrait plus servir : l'index tire les noms des recettes
-      // elles-mêmes. S'il sort quand même, il donne de quoi retrouver l'aliment
-      // dans Mealie plutôt qu'un « inconnu » sur lequel on ne peut rien faire.
-      const nom = nomsAliments.get(foodId) ?? `Aliment ${foodId.slice(0, 8)}`;
-
-      const trouve = stock.get(foodId);
-      if (!trouve) {
-        return {
-          foodId,
-          name: nom,
-          besoin,
-          status: relies.has(foodId) ? "manque" : "inconnu",
-        };
-      }
-      if (trouve.always) return { foodId, name: nom, besoin, status: "toujours" };
-
-      /* Le verdict n'est rendu que si les deux unités appartiennent à la même
-         famille. Une cuillère à soupe d'huile face à un litre reste sans réponse :
-         on affiche les deux quantités et on laisse juger. Mieux vaut un blanc
-         qu'un « il vous en manque » inventé. */
-      const unitLot = trouve.lot.unit ?? trouve.product.unit ?? "";
-      const verdict = besoin
-        ? comparer(besoin, { quantity: trouve.lot.quantity, unit: unitLot })
-        : { comparable: false };
-
-      return {
+    const ingredients = recipe.foodIds.map((foodId) =>
+      annoterAliment(
         foodId,
-        name: nom,
-        besoin,
-        assez: verdict.comparable ? verdict.assez : null,
-        manque: verdict.comparable && !verdict.assez ? verdict.manque : null,
-        status: "stock",
-        productId: trouve.product.id,
-        productName: trouve.product.name,
-        placeName: nomsLieux.get(trouve.lot.placeId) ?? null,
-        quantity: trouve.lot.quantity,
-        unit: unitLot,
-        lotId: trouve.lot.id,
-        expiresAt: trouve.lot.expiresAt,
-        level: trouve.level,
-      };
-    });
+        // Le repli ne devrait plus servir : l'index tire les noms des recettes
+        // elles-mêmes. S'il sort quand même, il donne de quoi retrouver l'aliment
+        // dans Mealie plutôt qu'un « inconnu » sur lequel on ne peut rien faire.
+        nomsAliments.get(foodId) ?? `Aliment ${foodId.slice(0, 8)}`,
+        besoins[foodId] ?? null,
+        { stock, relies, nomsLieux },
+      ),
+    );
 
     const enStock = ingredients.filter((i) => i.status === "stock");
     const presse = enStock.filter(
@@ -253,4 +262,74 @@ function alimentsARelier({ index, links, products, limit = 40 }) {
     });
 }
 
-export { alimentsARelier, croiserRecettes, mots, niveau, normaliser, proposerProduit, stockParAliment };
+/**
+ * Une liste de courses Mealie, ligne par ligne, confrontée aux placards.
+ *
+ * Mealie sait additionner plusieurs recettes en une liste ; il ne sait pas ce qui
+ * dort au congélateur. Chaque ligne reçoit donc un verdict, un seul, pour que
+ * l'écran n'ait pas à le recomposer :
+ *   achete     — déjà cochée dans Mealie : quelqu'un s'en est occupé
+ *   couvert    — en stock en quantité suffisante, ou « toujours là »
+ *   partiel    — en stock, mais pas assez : il faut acheter le complément
+ *   a-verifier — en stock, quantités incomparables : on l'a, reste à voir combien
+ *   acheter    — rien en réserve, aliment jamais relié, ou ligne en texte libre
+ *
+ * « À vérifier » reste distinct de « couvert » pour la même raison que partout
+ * ailleurs : deux cuillères à soupe face à une bouteille ne prouvent rien, et un
+ * « couvert » inventé ferait rentrer du magasin sans l'huile de la recette.
+ */
+function croiserListe({ items, links, products, lots, places = [], today }) {
+  const ctx = {
+    stock: stockParAliment(links, products, lots, today),
+    relies: new Set(links.map((l) => l.foodId)),
+    nomsLieux: new Map(places.map((p) => [p.id, p.name])),
+  };
+
+  return items.map((item) => {
+    const commun = {
+      id: item.id,
+      display: item.display,
+      label: item.label,
+      checked: item.checked,
+      position: item.position,
+    };
+
+    /* Une ligne sans aliment — « papier toilette », « un truc pour l'apéro » —
+       n'a rien à confronter : elle reste à acheter, et l'écran dit pourquoi. */
+    if (!item.foodId) {
+      return {
+        ...commun,
+        name: item.note || item.display || "(ligne vide)",
+        besoin: null,
+        status: "libre",
+        verdict: item.checked ? "achete" : "acheter",
+      };
+    }
+
+    const besoin =
+      Number.isFinite(item.quantity) && item.quantity > 0
+        ? { quantity: item.quantity, unit: item.unit ?? "" }
+        : null;
+    const annote = annoterAliment(item.foodId, item.name, besoin, ctx);
+
+    let verdict;
+    if (item.checked) verdict = "achete";
+    else if (annote.status === "toujours") verdict = "couvert";
+    else if (annote.status === "stock") {
+      verdict = annote.assez === true ? "couvert" : annote.assez === false ? "partiel" : "a-verifier";
+    } else verdict = "acheter";
+
+    return { ...commun, ...annote, verdict };
+  });
+}
+
+export {
+  alimentsARelier,
+  croiserListe,
+  croiserRecettes,
+  mots,
+  niveau,
+  normaliser,
+  proposerProduit,
+  stockParAliment,
+};

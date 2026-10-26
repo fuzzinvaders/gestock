@@ -177,3 +177,35 @@ export function placeKindLabel(kind: PlaceKind): string {
 export function placeKindIcon(kind: PlaceKind): string {
   return PLACE_KINDS.find((k) => k.value === kind)?.icon ?? '📦'
 }
+
+/** Une liste de courses Mealie, telle qu'on la choisit. */
+export interface ShoppingListSummary {
+  id: string
+  name: string
+  updatedAt: string | null
+}
+
+/**
+ * Le verdict d'une ligne de liste face aux placards — un seul, pour que l'écran
+ * n'ait pas à le recomposer à partir de l'état et des quantités.
+ */
+export type ListVerdict = 'achete' | 'couvert' | 'partiel' | 'a-verifier' | 'acheter'
+
+export interface ShoppingLine extends Omit<RecipeIngredient, 'status' | 'foodId'> {
+  id: string
+  foodId?: string
+  display: string
+  label: string | null
+  checked: boolean
+  position: number
+  status: IngredientStatus | 'libre'
+  verdict: ListVerdict
+}
+
+export interface ShoppingListCross {
+  id: string
+  name: string
+  updatedAt: string | null
+  recettes: string[]
+  items: ShoppingLine[]
+}

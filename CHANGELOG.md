@@ -17,6 +17,12 @@ yet, so entries are grouped by the change that shipped them.
   Mapping a Mealie food to a product is explicit, with a name-based proposal and a "toujours là"
   state for what is never inventoried. Recipes whose ingredients are entirely free text are set
   aside and counted rather than reported as complete.
+- **Shopping lists, read through the pantry.** Mealie adds recipes up into a shopping list but
+  cannot see the freezer. Gestock reads the list live and gives each line one verdict — to buy
+  (grouped by Mealie's aisle label), partial (with the shortfall), to check (stock in an
+  incomparable unit), already in the pantry (with where and how much), or already ticked in
+  Mealie. Read-only, like the rest of the Mealie link. The per-ingredient check is now shared
+  between recipes and lists, so a recipe can never say "you have it" while the list asks to buy it.
 - **Places can have several doors.** A place declares how many columns it has, and each section
   says which one it belongs to, so a side-by-side American fridge draws as what it is: freezer
   drawers on the left, shelves and bins on the right.
